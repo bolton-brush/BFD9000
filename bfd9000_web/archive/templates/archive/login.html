@@ -37,25 +37,25 @@
 
         <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            
+
             <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
                 <legend class="fieldset-legend">Login</legend>
                 <label class="input" for="id_username">
-                    <input 
-                        type="text" 
-                        placeholder="Username" 
-                        name="username" 
-                        id="id_username" 
-                        required 
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        name="username"
+                        id="id_username"
+                        required
                         autofocus
                     >
                 </label>
                 <label class="input" for="id_password">
                     <input
-                        type="password" 
-                        placeholder="Password" 
-                        name="password" 
-                        id="id_password" 
+                        type="password"
+                        placeholder="Password"
+                        name="password"
+                        id="id_password"
                         required
                     >
                 </label>

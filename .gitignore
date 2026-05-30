@@ -146,3 +146,9 @@ tailwindcss.exe
 .direnv/
 tmp/
 .DS_Store
+
+# Ruff
+.ruff_cache
+
+# DB files
+bfd9000_web/db

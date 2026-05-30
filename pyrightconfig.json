@@ -1,19 +1,27 @@
 {
-  "typeCheckingMode": "basic",
-  "reportUnknownArgumentType": "warning",
-  "reportUnknownMemberType": "warning",
-  "reportUnknownParameterType": "warning",
-  "reportUnknownVariableType": "none",
-  "reportMissingTypeStubs": "warning",
-  "reportIncompatibleVariableOverride": "none",
-  "extraPaths": [
-    "bfd9000_web"
+  // "typeCheckingMode": "basic",
+  // "reportUnknownArgumentType": "warning",
+  // "reportUnknownMemberType": "warning",
+  // "reportUnknownParameterType": "warning",
+  // "reportUnknownVariableType": "none",
+  // "reportMissingTypeStubs": "warning",
+  // "reportIncompatibleVariableOverride": "none",
+  "extraPaths": ["bfd9000_web"],
+  // "stubPath": "typings",
+  "ignore": [
+    "typings",
+    "nix/store",
+    ".direnv",
+    "migrations/versions",
+    "**/.venv",
   ],
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/migrations/**",
-    "**/tests/**"
-  ]
+    "**/tests/**",
+  ],
+  "venvPath": "./bfd9000_web",
+  "venv": ".venv",
 }

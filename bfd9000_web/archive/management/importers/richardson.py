@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, Optional, Tuple
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, cast
 
+import openpyxl
 from django.core.management.base import CommandError
 from django.db import transaction
 
@@ -15,44 +15,60 @@ from archive.constants import (
     SYSTEM_IDENTIFIER_RICHARDSON_SUBJECT,
     SYSTEM_RECORD_TYPE,
 )
-from archive.management.importers.base import BaseImporter, ImportStats
-from archive.models import Coding, Encounter, PhysicalLocation, PhysicalRecord, Subject
+from archive.management.importers.base import BaseImporter, ImportStats, Writeable
+from archive.models import (
+    Coding,
+    Collection,
+    Encounter,
+    PhysicalLocation,
+    PhysicalRecord,
+    Subject,
+)
 
-COLLECTION_SHORT_NAME = 'Richardson'
-COLLECTION_FULL_NAME = 'Richardson Collection'
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from openpyxl.cell import _CellGetValue  # pyright: ignore[reportPrivateUsage]
+    from openpyxl.worksheet.worksheet import (
+        Worksheet,
+    )
+
+COLLECTION_SHORT_NAME = "Richardson"
+COLLECTION_FULL_NAME = "Richardson Collection"
 
 # Map (modality.lower(), projection.lower()) -> record_type code.
 # Modality and projection values are from the Terms sheet and observed data.
-RICHARDSON_RECORD_TYPE_MAP: Dict[Tuple[str, str], str] = {
+RICHARDSON_RECORD_TYPE_MAP: dict[tuple[str, str], str] = {
     # Study models — projection is typically "None" (the string) or blank
-    ('study models', 'none'): 'SM',
-    ('study models', ''): 'SM',
+    ("study models", "none"): "SM",
+    ("study models", ""): "SM",
     # Radiographs by projection
-    ('radiographs', 'lateral'): 'L',
-    ('radiographs', 'frontal/pa'): 'F',
-    ('radiographs', 'oblique'): 'OB',
-    ('radiographs', 'hand/wrist'): 'H',
-    ('radiographs', 'occlusal'): 'OC',
-    ('radiographs', 'occlusal '): 'OC',   # trailing-space variant seen in data
-    ('radiographs', 'none'): 'UK',        # projection unknown
-    ('radiographs', ''): 'UK',
+    ("radiographs", "lateral"): "L",
+    ("radiographs", "frontal/pa"): "F",
+    ("radiographs", "oblique"): "OB",
+    ("radiographs", "hand/wrist"): "H",
+    ("radiographs", "occlusal"): "OC",
+    ("radiographs", "occlusal "): "OC",  # trailing-space variant seen in data
+    ("radiographs", "none"): "UK",  # projection unknown
+    ("radiographs", ""): "UK",
     # Photographs
-    ('picture', 'lateral'): 'PH',
-    ('picture', 'none'): 'PH',
-    ('picture', ''): 'PH',
-    ('picture', 'occlusal'): 'PH',
+    ("picture", "lateral"): "PH",
+    ("picture", "none"): "PH",
+    ("picture", ""): "PH",
+    ("picture", "occlusal"): "PH",
     # Cephalometric tracings
-    ('tracings', 'lateral'): 'RT',
-    ('tracings', 'none'): 'RT',
-    ('tracings', ''): 'RT',
+    ("tracings", "lateral"): "RT",
+    ("tracings", "none"): "RT",
+    ("tracings", ""): "RT",
 }
 
-REQUIRED_RECORD_TYPE_CODES = ['SM', 'L', 'F', 'OB', 'H', 'OC', 'UK', 'PH', 'RT']
+REQUIRED_RECORD_TYPE_CODES = ["SM", "L", "F", "OB", "H", "OC", "UK", "PH", "RT"]
 
 
 @dataclass
 class RichardsonStats(ImportStats):
     """Import counters specific to the Richardson dataset."""
+
     encounters_created: int = 0
     encounters_skipped: int = 0
     physical_records_created: int = 0
@@ -60,16 +76,21 @@ class RichardsonStats(ImportStats):
 
 
 class RichardsonImporter(BaseImporter):
-    """Import Richardson subjects, encounters, and physical records from an xlsx workbook."""
+    """Import Richardson subjects, encounters, and physical records
+
+    from an xlsx workbook.
+
+    """
 
     def __init__(
         self,
         *,
         dry_run: bool,
         include_names: bool,
-        stdout,
-        stderr,
+        stdout: Writeable,
+        stderr: Writeable,
     ) -> None:
+        """Initialized the Richardson Data Importer"""
         super().__init__(
             dry_run=dry_run,
             include_names=include_names,
@@ -78,19 +99,21 @@ class RichardsonImporter(BaseImporter):
         )
 
     def run(self, file_path: Path) -> None:
-        """Execute the Richardson import from the provided workbook path."""
-        try:
-            import openpyxl  # pylint: disable=import-outside-toplevel
-        except ImportError as exc:
-            raise CommandError("openpyxl is required to read .xlsx files") from exc
+        """Execute the Richardson import from the provided workbook path.
 
+        Raises:
+            CommandError: If there was a failiure importing the workbook
+
+        """
         if not file_path.exists():
             raise CommandError(f"File not found: {file_path}")
 
         record_type_cache = self._load_record_type_cache()
         class_codes = self._build_class_codes()
         skeletal_cache = self._load_skeletal_coding_cache()
-        collection = self._get_or_create_collection(COLLECTION_SHORT_NAME, COLLECTION_FULL_NAME)
+        collection = self._get_or_create_collection(
+            COLLECTION_SHORT_NAME, COLLECTION_FULL_NAME
+        )
         procedure_code = self._get_or_create_procedure()
 
         stats = RichardsonStats()
@@ -100,37 +123,42 @@ class RichardsonImporter(BaseImporter):
 
         wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
         try:
-            if 'Subject Info' not in wb.sheetnames:
+            if "Subject Info" not in wb.sheetnames:
                 raise CommandError("Expected 'Subject Info' sheet in workbook")
-            if 'Main' not in wb.sheetnames:
+            if "Main" not in wb.sheetnames:
                 raise CommandError("Expected 'Main' sheet in workbook")
 
             with transaction.atomic():
                 # --- Subject Info sheet ---
                 # Row layout: rows 0-3 are title/header rows; data starts at index 4
-                ws_subjects = wb['Subject Info']
+                ws_subjects = cast("Worksheet", wb["Subject Info"])
                 subject_rows = list(ws_subjects.iter_rows(values_only=True))
                 for row in subject_rows[4:]:
                     if row is None or all(cell is None for cell in row):
                         continue
                     try:
-                        self._import_subject_row(row, collection, class_codes, skeletal_cache, stats)
+                        self._import_subject_row(
+                            row, collection, class_codes, skeletal_cache, stats
+                        )
                     except CommandError as exc:
                         stats.rows_skipped += 1
                         self.stderr.write(str(exc))
 
-                # Build an in-memory map of r_number -> Subject for fast Main sheet lookups
+                # Build an in-memory map of r_number
+                # -> Subject for fast Main sheet lookups
                 subject_map = self._build_subject_map()
 
                 # --- Main sheet ---
                 # Rows 0-1 are partial header rows; data starts at index 2
-                ws_main = wb['Main']
+                ws_main = wb["Main"]
                 main_rows = list(ws_main.iter_rows(values_only=True))
                 for row in main_rows[2:]:
                     if row is None or all(cell is None for cell in row):
                         continue
                     try:
-                        self._import_main_row(row, subject_map, record_type_cache, procedure_code, stats)
+                        self._import_main_row(
+                            row, subject_map, record_type_cache, procedure_code, stats
+                        )
                     except CommandError as exc:
                         stats.rows_skipped += 1
                         self.stderr.write(str(exc))
@@ -150,19 +178,28 @@ class RichardsonImporter(BaseImporter):
     # Record-type cache
     # ------------------------------------------------------------------
 
-    def _load_record_type_cache(self) -> Dict[str, Coding]:
-        """Load required record_type Coding objects; raise if any are missing."""
+    @staticmethod
+    def _load_record_type_cache() -> dict[str, Coding]:
+        """Load required record_type Coding objects.
+
+        Returns:
+            Record type Coding lookup given the code
+
+        Raises:
+            CommandError: If any record types are missing
+
+        """
         codings = Coding.objects.filter(
             system=SYSTEM_RECORD_TYPE,
             code__in=REQUIRED_RECORD_TYPE_CODES,
         )
-        cache: Dict[str, Coding] = {c.code: c for c in codings}
+        cache: dict[str, Coding] = {c.code: c for c in codings}
         missing = [code for code in REQUIRED_RECORD_TYPE_CODES if code not in cache]
         if missing:
             raise CommandError(
                 "Missing required record type Coding entries. "
-                "Run 'python manage.py import_valuesets' first. "
-                f"Missing codes: {', '.join(missing)}"
+                + "Run 'python manage.py import_valuesets' first. "
+                + f"Missing codes: {', '.join(missing)}"
             )
         return cache
 
@@ -172,10 +209,10 @@ class RichardsonImporter(BaseImporter):
 
     def _import_subject_row(
         self,
-        row: Tuple,
-        collection,
-        class_codes: Dict[str, Optional[str]],
-        skeletal_cache: Dict[Tuple[str, str], Coding],
+        row: tuple[_CellGetValue, ...],
+        collection: Collection,
+        class_codes: dict[str, str | None],
+        skeletal_cache: dict[tuple[str, str], Coding],
         stats: RichardsonStats,
     ) -> None:
         r_number = self._cell_str(row[0])
@@ -194,19 +231,23 @@ class RichardsonImporter(BaseImporter):
             return
 
         birth_date = self._normalize_date(birth_date_raw)
-        gender = self._map_gender(gender_raw) if gender_raw else 'unknown'
+        gender = self._map_gender(gender_raw) if gender_raw else "unknown"
 
         # Prepend "Class " so the label matches BaseImporter._build_class_codes keys
-        molar_label = f"Class {molar_class_raw.strip()}" if molar_class_raw.strip() else ''
-        skeletal = self._resolve_skeletal_pattern(molar_label, class_codes, skeletal_cache)
+        molar_label = (
+            f"Class {molar_class_raw.strip()}" if molar_class_raw.strip() else ""
+        )
+        skeletal = self._resolve_skeletal_pattern(
+            molar_label, class_codes, skeletal_cache
+        )
 
         # Parse name from "FAMILY, GIVEN" format in col 1
-        humanname_family: Optional[str] = None
-        humanname_given: Optional[str] = None
+        humanname_family: str | None = None
+        humanname_given: str | None = None
         if self.include_names:
             name_raw = self._cell_str(row[1])
             if name_raw:
-                parts = name_raw.split(',', 1)
+                parts = name_raw.split(",", 1)
                 humanname_family = parts[0].strip() or None
                 humanname_given = parts[1].strip() if len(parts) > 1 else None
 
@@ -230,10 +271,10 @@ class RichardsonImporter(BaseImporter):
             if subject.birth_date != birth_date:
                 subject.birth_date = birth_date
                 updated = True
-            if subject.collection_id is None:  # type: ignore[attr-defined]
+            if subject.collection_id is None:
                 subject.collection = collection
                 updated = True
-            if skeletal and subject.skeletal_pattern_id != skeletal.id:  # type: ignore[attr-defined]
+            if skeletal and subject.skeletal_pattern_id != skeletal.id:
                 subject.skeletal_pattern = skeletal
                 updated = True
             if misc and subject.notes != misc:
@@ -254,7 +295,7 @@ class RichardsonImporter(BaseImporter):
             subject,
             SYSTEM_IDENTIFIER_RICHARDSON_SUBJECT,
             r_number,
-            use='official',
+            use="official",
             stats=stats,
         )
         if old_id:
@@ -262,11 +303,12 @@ class RichardsonImporter(BaseImporter):
                 subject,
                 SYSTEM_IDENTIFIER_RICHARDSON_OLD,
                 old_id,
-                use='secondary',
+                use="secondary",
                 stats=stats,
             )
 
-    def _get_subject_by_r_number(self, r_number: str) -> Optional[Subject]:
+    @staticmethod
+    def _get_subject_by_r_number(r_number: str) -> Subject | None:
         return (
             Subject.objects.filter(
                 identifiers__system=SYSTEM_IDENTIFIER_RICHARDSON_SUBJECT,
@@ -276,16 +318,22 @@ class RichardsonImporter(BaseImporter):
             .first()
         )
 
-    def _build_subject_map(self) -> Dict[str, Subject]:
-        """Build r_number -> Subject mapping for all Richardson subjects."""
+    @staticmethod
+    def _build_subject_map() -> dict[str, Subject]:
+        """Build r_number -> Subject mapping for all Richardson subjects.
+
+        Returns:
+            Subject lookup dictionary by identifier value
+
+        """
         subjects = (
             Subject.objects.filter(
                 identifiers__system=SYSTEM_IDENTIFIER_RICHARDSON_SUBJECT,
             )
-            .prefetch_related('identifiers')
+            .prefetch_related("identifiers")
             .distinct()
         )
-        result: Dict[str, Subject] = {}
+        result: dict[str, Subject] = {}
         for subject in subjects:
             for identifier in subject.identifiers.all():
                 if identifier.system == SYSTEM_IDENTIFIER_RICHARDSON_SUBJECT:
@@ -298,9 +346,9 @@ class RichardsonImporter(BaseImporter):
 
     def _import_main_row(
         self,
-        row: Tuple,
-        subject_map: Dict[str, Subject],
-        record_type_cache: Dict[str, Coding],
+        row: tuple[_CellGetValue, ...],
+        subject_map: dict[str, Subject],
+        record_type_cache: dict[str, Coding],
         procedure_code: Coding,
         stats: RichardsonStats,
     ) -> None:
@@ -312,26 +360,32 @@ class RichardsonImporter(BaseImporter):
         projection_raw = self._cell_str(row[7])
 
         # Skip spurious header-repeat rows embedded in the data
-        if modality_raw.lower() == 'modality' or projection_raw.lower() == 'projection':
+        if modality_raw.lower() == "modality" or projection_raw.lower() == "projection":
             return
 
         acq_date_raw = row[8]
         if not acq_date_raw:
             return
 
-        box = self._cell_str(row[12] if len(row) > 12 else None)
-        misc = self._cell_str(row[13] if len(row) > 13 else None)
+        # Some magic values here, this should probably
+        # be refactored to use header row names
+        box = self._cell_str(row[12] if len(row) > 12 else None)  # noqa: PLR2004
+        misc = self._cell_str(row[13] if len(row) > 13 else None)  # noqa: PLR2004
 
         subject = subject_map.get(r_number)
         if subject is None:
-            self.stderr.write(f"No subject found for R number {r_number}; skipping record row")
+            self.stderr.write(
+                f"No subject found for R number {r_number}; skipping record row"
+            )
             stats.physical_records_skipped += 1
             return
 
         try:
             acq_date = self._normalize_date(acq_date_raw)
         except CommandError:
-            self.stderr.write(f"Invalid acquisition date for {r_number}: {acq_date_raw!r}; skipping")
+            self.stderr.write(
+                f"Invalid acquisition date for {r_number}: {acq_date_raw!r}; skipping"
+            )
             stats.physical_records_skipped += 1
             return
 
@@ -340,9 +394,9 @@ class RichardsonImporter(BaseImporter):
             subject=subject,
             actual_period_start=acq_date,
             defaults={
-                'actual_period_start_raw': self._cell_str(acq_date_raw),
-                'actual_period_start_precision': 'day',
-                'procedure_code': procedure_code,
+                "actual_period_start_raw": self._cell_str(acq_date_raw),
+                "actual_period_start_precision": "day",
+                "procedure_code": procedure_code,
             },
         )
         if enc_created:
@@ -353,20 +407,20 @@ class RichardsonImporter(BaseImporter):
         # Map (modality, projection) to record_type code; default to UK (unknown)
         mod_key = modality_raw.lower()
         proj_key = projection_raw.lower()
-        code = RICHARDSON_RECORD_TYPE_MAP.get((mod_key, proj_key), 'UK')
+        code = RICHARDSON_RECORD_TYPE_MAP.get((mod_key, proj_key), "UK")
         record_type = record_type_cache[code]
 
         # Always create — duplicates (e.g. multiple photos same day) are intentional
         # Spreadsheet dates have no time-of-day or timezone; attach UTC midnight so
         # Django's timezone-aware DateTimeField does not emit a RuntimeWarning.
-        acq_datetime: Optional[datetime] = None
+        acq_datetime: datetime | None = None
         if isinstance(acq_date_raw, datetime):
-            acq_datetime = acq_date_raw.replace(tzinfo=timezone.utc)
+            acq_datetime = acq_date_raw.replace(tzinfo=UTC)
         pr = PhysicalRecord.objects.create(
             encounter=encounter,
             record_type=record_type,
             acquisition_datetime=acq_datetime,
-            notes=misc or '',
+            notes=misc or "",
         )
         if box:
             locations = self._parse_box_locations(box)
@@ -377,10 +431,11 @@ class RichardsonImporter(BaseImporter):
     # Location parsing
     # ------------------------------------------------------------------
 
-    def _parse_box_locations(self, raw: str) -> list[PhysicalLocation]:
-        """
-        Parse a box string from the Richardson spreadsheet into one or more
-        ``PhysicalLocation`` rows.
+    @staticmethod
+    def _parse_box_locations(raw: str) -> list[PhysicalLocation]:
+        """Parse a box string from the Richardson spreadsheet
+
+        into one or more ``PhysicalLocation`` rows.
 
         Supported formats
         -----------------
@@ -391,28 +446,34 @@ class RichardsonImporter(BaseImporter):
         anything else   → one location with cabinet=raw, shelf='', slot=''
 
         All created ``PhysicalLocation`` rows store the original *raw* string.
+
+        Returns:
+            A list of physical locations
+
         """
         locations: list[PhysicalLocation] = []
 
-        parts = raw.split('-')
+        parts = raw.split("-")
 
         # Need at least "cabinet-shelf-slot" (3 parts) to parse structured data.
-        if len(parts) < 3:
+        if len(parts) < 3:  # noqa: PLR2004
             # Could be freeform text like "R Archive Box", or "10-9/10" (2 parts).
-            if len(parts) == 2:
+            if len(parts) == 2:  # noqa: PLR2004
                 # Format: "cabinet-slot1/slot2" with no shelf letter — infer shelf 'A'
                 cabinet = parts[0].strip()
                 slot_part = parts[1].strip()
-                slots = [s.strip() for s in slot_part.split('/')]
+                slots = [s.strip() for s in slot_part.split("/")]
                 for slot in slots:
                     if slot:
-                        # Richardson data originates from a single facility; `address` is
-                        # intentionally omitted from the lookup key. If this importer is
-                        # adapted for multi-facility use, include `address` in the lookup
-                        # to avoid cross-facility slot collisions.
+                        # Richardson data originates from a single facility; `address`
+                        # is intentionally omitted from the lookup key. If this
+                        # importer is adapted for multi-facility use, include `address`
+                        # in the lookup to avoid cross-facility slot collisions.
                         loc, _ = PhysicalLocation.objects.get_or_create(
-                            cabinet=cabinet, shelf='A', slot=slot,
-                            defaults={'raw': raw},
+                            cabinet=cabinet,
+                            shelf="A",
+                            slot=slot,
+                            defaults={"raw": raw},
                         )
                         locations.append(loc)
             else:
@@ -422,8 +483,10 @@ class RichardsonImporter(BaseImporter):
                 # adapted for multi-facility use, include `address` in the lookup
                 # to avoid cross-facility slot collisions.
                 loc, _ = PhysicalLocation.objects.get_or_create(
-                    cabinet=raw.strip(), shelf='', slot='',
-                    defaults={'raw': raw},
+                    cabinet=raw.strip(),
+                    shelf="",
+                    slot="",
+                    defaults={"raw": raw},
                 )
                 locations.append(loc)
             return locations
@@ -431,41 +494,47 @@ class RichardsonImporter(BaseImporter):
         # 3+ parts: "cabinet-shelf-slot[/...]"
         cabinet = parts[0].strip()
         shelf = parts[1].strip()
-        slot_part = '-'.join(parts[2:]).strip()  # re-join in case slot itself contains '-'
+        slot_part = "-".join(
+            parts[2:]
+        ).strip()  # re-join in case slot itself contains '-'
 
         # slot_part may be "16", "16/17", or "30/B-1"
-        if '/' not in slot_part:
+        if "/" not in slot_part:
             # Simple single slot
             # Richardson data originates from a single facility; `address` is
             # intentionally omitted from the lookup key. If this importer is
             # adapted for multi-facility use, include `address` in the lookup
             # to avoid cross-facility slot collisions.
             loc, _ = PhysicalLocation.objects.get_or_create(
-                cabinet=cabinet, shelf=shelf, slot=slot_part,
-                defaults={'raw': raw},
+                cabinet=cabinet,
+                shelf=shelf,
+                slot=slot_part,
+                defaults={"raw": raw},
             )
             locations.append(loc)
         else:
             # Multiple slots: split on '/'
-            slot_tokens = slot_part.split('/')
+            slot_tokens = slot_part.split("/")
             current_shelf = shelf
             for token in slot_tokens:
-                token = token.strip()
+                tok = token.strip()
                 # A token like "B-1" means new shelf 'B', slot '1'
-                if '-' in token:
-                    sub = token.split('-', 1)
+                if "-" in tok:
+                    sub = tok.split("-", 1)
                     current_shelf = sub[0].strip()
                     slot = sub[1].strip()
                 else:
-                    slot = token
+                    slot = tok
                 if slot:
                     # Richardson data originates from a single facility; `address` is
                     # intentionally omitted from the lookup key. If this importer is
                     # adapted for multi-facility use, include `address` in the lookup
                     # to avoid cross-facility slot collisions.
                     loc, _ = PhysicalLocation.objects.get_or_create(
-                        cabinet=cabinet, shelf=current_shelf, slot=slot,
-                        defaults={'raw': raw},
+                        cabinet=cabinet,
+                        shelf=current_shelf,
+                        slot=slot,
+                        defaults={"raw": raw},
                     )
                     locations.append(loc)
 
@@ -483,6 +552,10 @@ class RichardsonImporter(BaseImporter):
         self.stdout.write(f"  Identifiers attached:      {stats.identifiers_attached}")
         self.stdout.write(f"  Encounters created:        {stats.encounters_created}")
         self.stdout.write(f"  Encounters already exist:  {stats.encounters_skipped}")
-        self.stdout.write(f"  Physical records created:  {stats.physical_records_created}")
-        self.stdout.write(f"  Physical records skipped:  {stats.physical_records_skipped}")
+        self.stdout.write(
+            f"  Physical records created:  {stats.physical_records_created}"
+        )
+        self.stdout.write(
+            f"  Physical records skipped:  {stats.physical_records_skipped}"
+        )
         self.stdout.write(f"  Rows skipped:              {stats.rows_skipped}")

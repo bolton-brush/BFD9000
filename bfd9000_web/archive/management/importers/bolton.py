@@ -5,8 +5,9 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import final
 
+import openpyxl
 from django.core.management.base import CommandError
 from django.db import transaction
 
@@ -14,44 +15,52 @@ from archive.constants import (
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
     SYSTEM_IDENTIFIER_BRUSH,
 )
-from archive.management.importers.base import BaseImporter, ImportStats
-from archive.models import Coding, Subject, Encounter
+from archive.management.importers.base import (
+    BaseImporter,
+    ImportStats,
+    Stringable,
+    Writeable,
+)
+from archive.models import Coding, Encounter, Subject
 
 
 @dataclass
 class BoltonStats(ImportStats):
     """Import counters specific to the Bolton dataset."""
+
     skeletal_missing: int = 0
     encounters_created: int = 0
     encounters_skipped: int = 0
 
 
+@final
 class BoltonImporter(BaseImporter):
     """Import Bolton subjects and related identifiers/codings."""
+
     def __init__(
         self,
         *,
         dry_run: bool,
         include_names: bool,
-        stdout,
-        stderr,
-        timepoints_file: Optional[str] = None,
+        stdout: Writeable,
+        stderr: Writeable,
+        timepoints_file: str | None = None,
         skip_timepoints: bool = False,
     ) -> None:
+        """Initializes the Bolton Data Importer"""
         super().__init__(
             dry_run=dry_run, include_names=include_names, stdout=stdout, stderr=stderr
         )
-        self.timepoints_file: Optional[str] = timepoints_file
+        self.timepoints_file: str | None = timepoints_file
         self.skip_timepoints = skip_timepoints
 
     def run(self, file_path: Path) -> None:
-        """Execute the Bolton import from the provided workbook path."""
-        try:
-            # Import locally to provide a clear error when missing.
-            import openpyxl  # pylint: disable=import-outside-toplevel
-        except ImportError as exc:
-            raise CommandError("openpyxl is required to read .xlsx files") from exc
+        """Execute the Bolton import from the provided workbook path.
 
+        Raises:
+            CommandError: If reading the excel file has any issues
+
+        """
         if not file_path.exists():
             raise CommandError(f"File not found: {file_path}")
 
@@ -86,12 +95,18 @@ class BoltonImporter(BaseImporter):
                         stats.rows_skipped += 1
                         self.stderr.write(str(exc))
 
-                # Optionally import timepoints CSV (generates Encounter rows per subject/timepoint)
+                # Optionally import timepoints CSV
+                # (generates Encounter rows per subject/timepoint)
                 if not self.skip_timepoints:
                     if self.timepoints_file:
                         csv_path = Path(self.timepoints_file).expanduser().resolve()
                     else:
-                        csv_path = Path(__file__).resolve().parents[3] / "docs" / "collections_data" / "BoltonTimepoints2.csv"
+                        csv_path = (
+                            Path(__file__).resolve().parents[3]
+                            / "docs"
+                            / "collections_data"
+                            / "BoltonTimepoints2.csv"
+                        )
                     try:
                         self._import_timepoints(csv_path, stats, procedure_code)
                     except CommandError as exc:
@@ -109,8 +124,11 @@ class BoltonImporter(BaseImporter):
         finally:
             wb.close()
 
-    def _build_header_index(self, header: Tuple[object, ...]) -> Dict[str, int]:
-        normalized = [str(value).strip().lower() if value is not None else "" for value in header]
+    @staticmethod
+    def _build_header_index(header: tuple[object, ...]) -> dict[str, int]:
+        normalized = [
+            str(value).strip().lower() if value is not None else "" for value in header
+        ]
         required = [
             "collectionid",
             "subjectid",
@@ -125,7 +143,8 @@ class BoltonImporter(BaseImporter):
             raise CommandError(f"Missing required columns: {', '.join(missing)}")
         return {name: normalized.index(name) for name in required}
 
-    def _load_coding_cache(self) -> Dict[Tuple[str, str], Coding]:
+    @staticmethod
+    def _load_coding_cache() -> dict[tuple[str, str], Coding]:
         skeletal_system = "http://snomed.info/sct"
         race_system = "urn:oid:2.16.840.1.113883.6.238"
         skeletal_codes = ["248292005", "248293000", "248294006"]
@@ -137,7 +156,7 @@ class BoltonImporter(BaseImporter):
         )
         cache = {(coding.system, coding.code): coding for coding in codings}
 
-        missing = []
+        missing: list[str] = []
         for code in skeletal_codes:
             if (skeletal_system, code) not in cache:
                 missing.append(f"{skeletal_system}#{code}")
@@ -148,17 +167,17 @@ class BoltonImporter(BaseImporter):
         if missing:
             raise CommandError(
                 "Missing required Coding entries. Run migrations to seed codes. "
-                f"Missing: {', '.join(missing)}"
+                + f"Missing: {', '.join(missing)}"
             )
 
         return cache
 
     def _import_row(
         self,
-        row: Tuple[object, ...],
-        index: Dict[str, int],
-        class_codes: Dict[str, Optional[str]],
-        coding_cache: Dict[Tuple[str, str], Coding],
+        row: tuple[object, ...],
+        index: dict[str, int],
+        class_codes: dict[str, str | None],
+        coding_cache: dict[tuple[str, str], Coding],
         stats: BoltonStats,
     ) -> None:
         collection_id = self._cell_str(row[index["collectionid"]])
@@ -170,12 +189,16 @@ class BoltonImporter(BaseImporter):
         brush_id = self._cell_str(row[index["brushid"]])
 
         if not collection_id or not subject_id or not birth_date or not sex_value:
-            raise CommandError(f"Skipping row with missing required values: {subject_id}")
+            raise CommandError(
+                f"Skipping row with missing required values: {subject_id}"
+            )
 
         collection = self._get_or_create_collection(collection_id)
 
         ethnicity = self._resolve_race(ethnicity_value, coding_cache)
-        skeletal = self._resolve_skeletal_pattern(angle_class, class_codes, coding_cache)
+        skeletal = self._resolve_skeletal_pattern(
+            angle_class, class_codes, coding_cache
+        )
         if not skeletal:
             stats.skeletal_missing += 1
 
@@ -228,7 +251,8 @@ class BoltonImporter(BaseImporter):
                 stats=stats,
             )
 
-    def _get_subject_by_identifier(self, value: str) -> Optional[Subject]:
+    @staticmethod
+    def _get_subject_by_identifier(value: str) -> Subject | None:
         return (
             Subject.objects.filter(
                 identifiers__system=SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
@@ -238,18 +262,24 @@ class BoltonImporter(BaseImporter):
             .first()
         )
 
-    def _import_timepoints(self, csv_path: Path, stats: BoltonStats, procedure_code: Coding) -> None:
+    def _import_timepoints(
+        self, csv_path: Path, stats: BoltonStats, procedure_code: Coding
+    ) -> None:
         """Read the BoltonTimepoints2.csv and create Encounter objects per timepoint.
 
         The CSV uses `subjectid` values that correspond to the Bolton identifier
         (system = SYSTEM_IDENTIFIER_BOLTON_SUBJECT). For each row we locate the
         Subject by that identifier and create an Encounter with
         `actual_period_start` populated from `timepointdate`.
+
+        Raises:
+            CommandError: If there was an issue importing timepoints
+
         """
         if not csv_path.exists():
             raise CommandError(f"Timepoints CSV not found: {csv_path}")
 
-        with csv_path.open(newline='', encoding='utf-8') as fh:
+        with csv_path.open(newline="", encoding="utf-8") as fh:
             reader = csv.DictReader(fh)
             required = ["collectionid", "subjectid", "timepointnum", "timepointdate"]
             # Normalize fieldnames to lowercase so row access is consistent (#7)
@@ -257,9 +287,11 @@ class BoltonImporter(BaseImporter):
             normalized_fieldnames = [h.strip().lower() for h in raw_fieldnames]
             missing = [r for r in required if r not in normalized_fieldnames]
             if missing:
-                raise CommandError(f"Bolton timepoints CSV missing columns: {', '.join(missing)}")
+                raise CommandError(
+                    f"Bolton timepoints CSV missing columns: {', '.join(missing)}"
+                )
             # Build a mapping from normalized key -> original key for DictReader rows
-            key_map = {norm: orig for norm, orig in zip(normalized_fieldnames, raw_fieldnames)}
+            key_map = dict(zip(normalized_fieldnames, raw_fieldnames, strict=False))
 
             for raw_row in reader:
                 # Normalize row keys to lowercase (#7)
@@ -267,24 +299,34 @@ class BoltonImporter(BaseImporter):
                 subject_id = self._cell_str(row.get("subjectid"))
                 date_raw = row.get("timepointdate")
                 if not subject_id or not date_raw:
-                    self.stderr.write(f"Skipping timepoint row with missing subject or date: {row}")
+                    self.stderr.write(
+                        f"Skipping timepoint row with missing subject or date: {row}"
+                    )
                     stats.encounters_skipped += 1
                     continue
 
                 subject = self._get_subject_by_identifier(subject_id)
                 if subject is None:
-                    self.stderr.write(f"No subject found for Bolton id {subject_id}; skipping timepoint")
+                    self.stderr.write(
+                        f"""No subject found for Bolton id {
+                            subject_id
+                        }; skipping timepoint"""
+                    )
                     stats.encounters_skipped += 1
                     continue
 
                 try:
                     actual_date = self._normalize_date(date_raw)
                 except CommandError:
-                    self.stderr.write(f"Invalid date for subject {subject_id}: {date_raw}; skipping")
+                    self.stderr.write(
+                        f"Invalid date for subject {subject_id}: {date_raw}; skipping"
+                    )
                     stats.encounters_skipped += 1
                     continue
 
-                date_raw_str = self._cell_str(date_raw)  # #8a: use _cell_str instead of str()
+                date_raw_str = self._cell_str(
+                    date_raw
+                )  # #8a: use _cell_str instead of str()
 
                 # Avoid creating duplicate encounters for same subject/date/raw (#8b)
                 if Encounter.objects.filter(
@@ -292,12 +334,16 @@ class BoltonImporter(BaseImporter):
                     actual_period_start=actual_date,
                     actual_period_start_raw=date_raw_str,
                 ).exists():
-                    self.stderr.write(f"Encounter already exists for {subject_id} on {actual_date}; skipping")
+                    self.stderr.write(
+                        f"""Encounter already exists for {subject_id} on {
+                            actual_date
+                        }; skipping"""
+                    )
                     stats.encounters_skipped += 1
                     continue
 
                 # Use objects.create() instead of manual save() (#8c)
-                Encounter.objects.create(
+                _ = Encounter.objects.create(
                     subject=subject,
                     actual_period_start=actual_date,
                     actual_period_start_raw=date_raw_str,
@@ -306,7 +352,9 @@ class BoltonImporter(BaseImporter):
                 )
                 stats.encounters_created += 1
 
-    def _resolve_race(self, value, coding_cache: Dict[Tuple[str, str], Coding]) -> Optional[Coding]:
+    def _resolve_race(
+        self, value: Stringable, coding_cache: dict[tuple[str, str], Coding]
+    ) -> Coding | None:
         race_map = {
             "1": "2106-3",
             "0": "2054-5",
