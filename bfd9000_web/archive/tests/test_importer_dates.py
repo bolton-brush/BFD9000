@@ -3,10 +3,9 @@
 
 import io
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.test import SimpleTestCase
-from typing_extensions import override
 
 from archive.management.importers.lancaster import LancasterImporter
 

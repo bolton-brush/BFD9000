@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         RelatedManager,
     )
 
-from typing_extensions import override
+from typing import override
 
 from .constants import (
     SERIESINSTANCEUID_ROOT,

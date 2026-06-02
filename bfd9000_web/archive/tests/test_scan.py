@@ -4,7 +4,7 @@
 
 import io
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -12,7 +12,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from PIL import Image
-from typing_extensions import override
 
 
 class ScanTiffPreviewTests(TestCase):

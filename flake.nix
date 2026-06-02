@@ -5,6 +5,9 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05"; # or unstable
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    uv2nix.url = "github:pyproject-nix/uv2nix";
+    pybuild.url = "github:pyproject-nix/build-system-pkgs";
+    pyproject.url = "github:pyproject-nix/pyproject.nix";
   };
 
   outputs =
@@ -16,7 +19,28 @@
         pkgs-treefmt = (import inputs.nixpkgs) {
           inherit system;
         };
-        python = pkgs.python311;
+        python = pkgs.python313;
+        workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./bfd9000_web; };
+        overlay = workspace.mkPyprojectOverlay {
+          sourcePreference = "wheel";
+        };
+        pythonBase = pkgs.callPackage inputs.pyproject.build.packages {
+          inherit python;
+        };
+        pythonSet = pythonBase.overrideScope (
+          pkgs.lib.composeManyExtensions [
+            inputs.pybuild.overlays.wheel
+            overlay
+          ]
+        );
+        venv = pythonSet.mkVirtualEnv "venv" workspace.deps.default;
+        venvDev = pythonSet.mkVirtualEnv "venvDev" (workspace.deps.all or workspace.deps.default);
+        deps = with pkgs; [
+          file
+          sqlite
+        ];
+        bfd9000-app = pkgs.callPackage ./nix/bfd9000-app.nix { pythonEnv = venv; };
+        dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix { inherit bfd9000-app deps; pythonEnv = venv; };
       in
       {
         formatter =
@@ -48,23 +72,31 @@
                 nil
                 nixd
                 uv
-                file
                 ruff
-                sqlite
+                podman
+                podman-compose
               ]
               ++ [
-                python
-              ];
+                venvDev
+              ] ++ deps;
+
+            env = {
+              UV_NO_SYNC = "1";
+              UV_PYTHON = pythonSet.python.interpreter;
+              UV_PYTHON_DOWNLOADS = "never";
+            };
+
             shellHook = ''
+              export PYTHONPATH=$(git rev-parse --show-toplevel)/bfd9000_web
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
-              export UV_PROJECT=$(git rev-parse --show-toplevel)/bfd9000_web
-              uv venv
-              uv sync --dev
-              source bfd9000_web/.venv/bin/activate
             '';
           };
         };
+        packages = {
+          inherit bfd9000-app dockerImage;
+        };
         checks = {
+          inherit dockerImage;
           ruff-lint = pkgs.stdenvNoCC.mkDerivation {
             name = "ruff-lint";
             src = ./.;
@@ -74,6 +106,35 @@
             buildPhase = ''
               echo "Running Ruff linter checks..."
               ruff check ./bfd9000_web --exclude bfd9000_web/archive/management,bfd9000_web/archive/tests,bfd9000_web/archive/migrations
+            '';
+
+            installPhase = "mkdir $out";
+          };
+          mypy-types = pkgs.stdenvNoCC.mkDerivation {
+            name = "mypy-types";
+            src = ./bfd9000_web;
+
+            nativeBuildInputs = [ venvDev ];
+
+            buildPhase = ''
+              echo "Running Mypy type checks..."
+              export PYTHONPATH=$(pwd)
+              mypy
+            '';
+
+            installPhase = "mkdir $out";
+          };
+          django-tests = pkgs.stdenvNoCC.mkDerivation {
+            name = "django-tests";
+            src = ./bfd9000_web;
+
+            nativeBuildInputs = [ venv ] ++ deps;
+
+            buildPhase = ''
+              echo "Running Django tests..."
+              export PYTHONPATH=$(pwd)
+              export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
+              python manage.py test --verbosity=2 archive.tests
             '';
 
             installPhase = "mkdir $out";

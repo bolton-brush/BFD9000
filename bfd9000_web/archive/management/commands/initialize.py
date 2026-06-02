@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import textwrap
 from pathlib import Path
-from typing import Any, Literal, TypedDict, cast, final
+from typing import Any, Literal, TypedDict, cast, final, override
 
 from BFD9000.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,7 +15,6 @@ from django.core.management import (
     CommandParser,
     call_command,
 )
-from typing_extensions import override
 
 
 class _CommandDict(TypedDict):

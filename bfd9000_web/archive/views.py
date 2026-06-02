@@ -6,7 +6,7 @@ It also includes custom actions for file serving and valueset retrieval.
 """
 
 import pathlib
-from typing import TYPE_CHECKING, Any, TypeVar, cast, final
+from typing import TYPE_CHECKING, Any, TypeVar, cast, final, override
 
 from BFD9000.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -35,7 +35,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from typing_extensions import override
 
 from .constants import (
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,

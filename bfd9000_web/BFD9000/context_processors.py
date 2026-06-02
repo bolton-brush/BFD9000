@@ -1,5 +1,6 @@
 """Reports app version and script location to Django"""
 
+
 from rest_framework.request import Request
 from typing_extensions import TypedDict
 

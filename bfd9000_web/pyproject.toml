@@ -9,6 +9,7 @@ dependencies = [
     "django>=6.0,<7.0",
     "django-cors-headers>=4.0,<5.0",
     "django-filter>=25.0,<26.0",
+    "django-stubs>=6.0,<7.0",
     "djangorestframework>=3.14,<4.0",
     "drf-nested-routers>=0.93,<1.0",
     "drf-spectacular>=0.27,<1.0",
@@ -28,7 +29,6 @@ dev = [
     "django-cors-headers>=4.0,<5.0",
     "django-filter>=25.0,<26.0",
     "django-stubs>=6.0,<7.0",
-    "django-types>=0.20",
     "djangorestframework>=3.14,<4.0",
     "djangorestframework-stubs>=3.14,<4.0",
     "drf-nested-routers>=0.93,<1.0",
@@ -69,3 +69,7 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "archive.tests.*"
 ignore_errors = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["BFD9000*"]

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypedDict, cast, final
+from typing import TYPE_CHECKING, Any, TypedDict, cast, final, override
 
 from django.core.management.base import BaseCommand, CommandError
-from typing_extensions import override
 
 from archive.constants import VALUESET_EXPAND_URLS
 from archive.management.importers.valuesets import import_valueset

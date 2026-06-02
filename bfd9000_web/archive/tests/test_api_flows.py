@@ -2,14 +2,13 @@
 # pyright: reportUninitializedInstanceVariable=false, reportUnknownMemberType=false, reportAny=false
 # ruff: noqa: S106
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
-from typing_extensions import override
 
 from archive.constants import (
     SYSTEM_MODALITY,

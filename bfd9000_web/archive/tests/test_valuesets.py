@@ -2,12 +2,11 @@
 # pyright: reportUnknownMemberType=false, reportUninitializedInstanceVariable=false, reportAny=false
 # ruff: noqa: S106
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
-from typing_extensions import override
 
 from archive.constants import (
     SYSTEM_IDENTIFIER_IMAGE_TYPE,

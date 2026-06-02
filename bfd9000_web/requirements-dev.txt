@@ -1,7 +1,0 @@
-# Development-only dependencies (type stubs, linters, etc.)
-# Install with: pip install -r requirements-dev.txt
--r requirements.txt
-django-types>=0.20
-pytest>=8.0,<10.0
-pytest-django>=4.10,<5.0
-djangorestframework-stubs>=3.17.0

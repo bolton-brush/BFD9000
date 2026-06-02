@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypedDict, cast, final
+from typing import TYPE_CHECKING, Literal, TypedDict, cast, final, override
 
 from django.core.management.base import BaseCommand, CommandError
-from typing_extensions import override
 
 from archive.constants import SYSTEM_IDENTIFIER_LANCASTER_SUBJECT
 from archive.management.importers.bolton import BoltonImporter

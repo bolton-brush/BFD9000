@@ -1,19 +1,18 @@
 """Tests for the Richardson collection importer."""
 # pyright: reportUninitializedInstanceVariable=false, reportOptionalMemberAccess=false, reportPrivateUsage=false
-# ruff: noqa: S101
+# ruff: noqa: S101, DTZ001
 
 from __future__ import annotations
 
 import io
 import tempfile
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 import openpyxl
 from django.core.management.base import CommandError as DjangoCommandError
 from django.test import TestCase
-from typing_extensions import override
 
 from archive.constants import (
     SYSTEM_IDENTIFIER_RICHARDSON_OLD,
@@ -131,7 +130,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -160,7 +159,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -191,7 +190,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R002",
                 "DOE, JANE",
-                datetime(1964, 3, 1, tzinfo=UTC),
+                datetime(1964, 3, 1, tzinfo=None),
                 None,
                 None,
                 "F",
@@ -216,7 +215,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R006",
                 "BAGWELL, MARCUS",
-                datetime(1962, 2, 20, tzinfo=UTC),
+                datetime(1962, 2, 20, tzinfo=None),
                 "FA1",
                 "WATER DAMAGED",
                 "M",
@@ -242,7 +241,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "SMITH, JOHN",
-                datetime(1965, 5, 10, tzinfo=UTC),
+                datetime(1965, 5, 10, tzinfo=None),
                 None,
                 None,
                 "M",
@@ -265,7 +264,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "SMITH, JOHN",
-                datetime(1965, 5, 10, tzinfo=UTC),
+                datetime(1965, 5, 10, tzinfo=None),
                 None,
                 None,
                 "M",
@@ -292,7 +291,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -305,11 +304,11 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "R001",
                 "F",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "I",
                 "study models",
                 "None",
-                datetime(1972, 2, 15, tzinfo=UTC),
+                datetime(1972, 2, 15, tzinfo=None),
                 "5-6",
                 None,
                 None,
@@ -335,7 +334,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -348,11 +347,11 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "R001",
                 "F",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "I",
                 "study models",
                 "None",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 "6-0",
                 None,
                 None,
@@ -364,11 +363,11 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "R001",
                 "F",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "I",
                 "Radiographs",
                 "Lateral",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 "6-0",
                 None,
                 None,
@@ -397,7 +396,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -410,11 +409,11 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "R001",
                 "F",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "I",
                 "study models",
                 "None",
-                datetime(1972, 2, 15, tzinfo=UTC),
+                datetime(1972, 2, 15, tzinfo=None),
                 "5-6",
                 None,
                 None,
@@ -446,7 +445,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 None,
                 None,
                 "F",
@@ -463,7 +462,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 modality,
                 projection,
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 None,
                 None,
                 None,
@@ -535,7 +534,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 None,
                 None,
                 "F",
@@ -552,7 +551,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "Picture",
                 "None",
-                datetime(1974, 6, 13, tzinfo=UTC),
+                datetime(1974, 6, 13, tzinfo=None),
                 None,
                 None,
                 None,
@@ -568,7 +567,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "Picture",
                 "None",
-                datetime(1974, 6, 13, tzinfo=UTC),
+                datetime(1974, 6, 13, tzinfo=None),
                 None,
                 None,
                 None,
@@ -591,7 +590,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",
@@ -608,7 +607,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "Radiographs",
                 "Lateral",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 None,
                 None,
                 None,
@@ -648,7 +647,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 None,
                 None,
                 "F",
@@ -666,7 +665,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "modality",
                 "projection",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 None,
                 None,
                 None,
@@ -682,7 +681,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "Radiographs",
                 "Lateral",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 None,
                 None,
                 None,
@@ -701,7 +700,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 None,
                 None,
                 "F",
@@ -718,7 +717,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
                 None,
                 "Radiographs",
                 "Lateral",
-                datetime(1972, 8, 8, tzinfo=UTC),
+                datetime(1972, 8, 8, tzinfo=None),
                 None,
                 None,
                 None,
@@ -738,7 +737,7 @@ class RichardsonImporterTestCase(TestCase):  # noqa: PLR0904
             (
                 "R001",
                 "ADAMS, LORNA",
-                datetime(1966, 8, 8, tzinfo=UTC),
+                datetime(1966, 8, 8, tzinfo=None),
                 "FA30",
                 None,
                 "F",

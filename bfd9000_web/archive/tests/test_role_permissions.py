@@ -3,13 +3,12 @@
 # ruff: noqa: S106
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.contrib.auth.models import Group, Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
-from typing_extensions import override
 
 from archive.constants import (
     SYSTEM_MODALITY,

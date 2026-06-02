@@ -4,11 +4,10 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
-from typing_extensions import override
 
 if TYPE_CHECKING:
     _MixinBase = TestCase

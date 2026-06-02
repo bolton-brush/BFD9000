@@ -5,7 +5,7 @@
 import datetime
 import io
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from django.contrib.auth.models import Permission, User
 from django.contrib.contenttypes.models import ContentType
@@ -17,7 +17,6 @@ from django.urls import reverse
 from PIL import Image
 from rest_framework import status
 from rest_framework.response import Response
-from typing_extensions import override
 
 from archive.constants import (
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,

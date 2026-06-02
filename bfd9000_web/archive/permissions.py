@@ -1,11 +1,10 @@
 """Endpoint Permission"""
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from typing_extensions import override
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser, User
@@ -28,10 +27,12 @@ class CuratorOrSuperuserEditPermission(BasePermission):
 
         """
         user = cast("User | AnonymousUser | None", request.user)
-        if not user or not user.is_authenticated or request.method == "DELETE":
+        if not user or not user.is_authenticated:
             return False
         if user.is_superuser or request.method in SAFE_METHODS:
             return True
+        if request.method == "DELETE":
+            return False
 
         qs = getattr(view, "queryset", None)
         if qs is None and hasattr(view, "get_queryset"):

@@ -11,7 +11,7 @@ import json
 import logging
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast, final
+from typing import TYPE_CHECKING, Any, cast, final, override
 
 import magic
 from django.contrib.auth.models import User
@@ -20,7 +20,6 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models.fields.files import FieldFile
 from rest_framework import serializers
-from typing_extensions import override
 
 from archive.management.importers.base import Stringable
 
@@ -50,8 +49,10 @@ from .models import (
 )
 
 if TYPE_CHECKING:
+
     from django.db.models import QuerySet
     from rest_framework.request import Request
+
 
 logger = logging.getLogger(__name__)
 LATERAL_RECORD_TYPE_CODE = "L"

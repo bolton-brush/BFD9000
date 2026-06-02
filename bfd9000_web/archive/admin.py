@@ -1,13 +1,12 @@
 """Admin configuration for archive models."""
 
-from typing import TYPE_CHECKING, cast, final
+from typing import TYPE_CHECKING, cast, final, override
 
 from django.contrib import admin
 from django.db.models import Model
 from django.forms import ModelForm
 from django.http import HttpRequest
 from django_stubs_ext import FieldsetSpec
-from typing_extensions import override
 
 from .models import (
     Address,

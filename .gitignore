@@ -152,3 +152,6 @@ tmp/
 
 # DB files
 bfd9000_web/db
+
+# nix stuff
+result

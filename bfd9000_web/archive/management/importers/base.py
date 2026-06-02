@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, override, runtime_checkable
 
 from django.core.management.base import CommandError
-from typing_extensions import override
 
 from archive.constants import SYSTEM_PROCEDURE
 from archive.models import Coding, Collection, GenderLiteral, Identifier, Subject
@@ -105,7 +104,7 @@ class BaseImporter:
     @staticmethod
     def _map_gender(value: str) -> GenderLiteral:
         gender_map: dict[str, GenderLiteral] = {
-            label.upper(): key for key, label in Subject.GENDER_CHOICES
+            label[0].upper(): key for key, label in Subject.GENDER_CHOICES
         }
         normalized = value.strip().upper()
         return gender_map.get(normalized, "unknown")
