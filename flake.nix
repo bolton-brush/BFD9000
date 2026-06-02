@@ -11,7 +11,7 @@
   };
 
   outputs =
-    { ... }@inputs:
+    { self, ... }@inputs:
     inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
@@ -41,26 +41,22 @@
         ];
         bfd9000-app = pkgs.callPackage ./nix/bfd9000-app.nix { pythonEnv = venv; };
         dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix { inherit bfd9000-app deps; pythonEnv = venv; };
+        treefmtconfig = inputs.treefmt-nix.lib.evalModule pkgs-treefmt {
+          projectRootFile = "flake.nix";
+          programs = {
+            alejandra.enable = true;
+            toml-sort.enable = true;
+            yamlfmt.enable = true;
+            mdformat.enable = true;
+            shellcheck.enable = true;
+            shfmt.enable = true;
+            nixfmt.enable = true;
+          };
+          settings.formatter.shellcheck.excludes = [ ".envrc" ];
+        };
       in
       {
-        formatter =
-          let
-            treefmtconfig = inputs.treefmt-nix.lib.evalModule pkgs-treefmt {
-              projectRootFile = "flake.nix";
-              programs = {
-                alejandra.enable = true;
-                ruff-format.enable = true;
-                toml-sort.enable = true;
-                yamlfmt.enable = true;
-                mdformat.enable = true;
-                shellcheck.enable = true;
-                shfmt.enable = true;
-                nixfmt.enable = true;
-              };
-              settings.formatter.shellcheck.excludes = [ ".envrc" ];
-            };
-          in
-          treefmtconfig.config.build.wrapper;
+        formatter = treefmtconfig.config.build.wrapper;
         devShells = {
           default = pkgs.mkShell {
             name = "django-env";
@@ -97,6 +93,7 @@
         };
         checks = {
           inherit dockerImage;
+          formatting = treefmtconfig.config.build.check self;
           ruff-lint = pkgs.stdenvNoCC.mkDerivation {
             name = "ruff-lint";
             src = ./.;
