@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05"; # or unstable
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05"; # or unstable
     treefmt-nix.url = "github:numtide/treefmt-nix";
     uv2nix.url = "github:pyproject-nix/uv2nix";
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
@@ -40,7 +40,10 @@
           sqlite
         ];
         bfd9000-app = pkgs.callPackage ./nix/bfd9000-app.nix { pythonEnv = venv; };
-        dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix { inherit bfd9000-app deps; pythonEnv = venv; };
+        dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix {
+          inherit bfd9000-app deps;
+          pythonEnv = venv;
+        };
         treefmtconfig = inputs.treefmt-nix.lib.evalModule pkgs-treefmt {
           projectRootFile = "flake.nix";
           programs = {
@@ -74,7 +77,8 @@
               ]
               ++ [
                 venvDev
-              ] ++ deps;
+              ]
+              ++ deps;
 
             env = {
               UV_NO_SYNC = "1";
@@ -85,6 +89,7 @@
             shellHook = ''
               export PYTHONPATH=$(git rev-parse --show-toplevel)/bfd9000_web
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
+              ln -sfn ${venvDev} $PYTHONPATH/.venv
             '';
           };
         };
