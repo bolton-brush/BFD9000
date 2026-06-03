@@ -44,6 +44,7 @@
           inherit bfd9000-app deps;
           pythonEnv = venv;
         };
+        load-podman = pkgs.callPackage ./nix/load-podman.nix { };
         treefmtconfig = inputs.treefmt-nix.lib.evalModule pkgs-treefmt {
           projectRootFile = "flake.nix";
           programs = {
@@ -77,6 +78,7 @@
               ]
               ++ [
                 venvDev
+                load-podman
               ]
               ++ deps;
 
@@ -87,14 +89,15 @@
             };
 
             shellHook = ''
-              export PYTHONPATH=$(git rev-parse --show-toplevel)/bfd9000_web
+              PROJ_ROOT=$(git rev-parse --show-toplevel)/bfd9000_web
+              export PYTHONPATH="$PROJ_ROOT:${venvDev}/lib/*/site-packages:$PYTHONPATH"
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
-              ln -sfn ${venvDev} $PYTHONPATH/.venv
+              ln -sfn ${venvDev} $PROJ_ROOT/.venv
             '';
           };
         };
         packages = {
-          inherit bfd9000-app dockerImage;
+          inherit bfd9000-app dockerImage load-podman;
         };
         checks = {
           inherit dockerImage;
@@ -143,6 +146,11 @@
           };
         };
         apps = {
+          load-podman = {
+            type = "app";
+            program = "${load-podman}/bin/load-podman";
+          };
+
           dbeaver = {
             type = "app";
             program = "${pkgs.dbeaver-bin}/bin/dbeaver";
