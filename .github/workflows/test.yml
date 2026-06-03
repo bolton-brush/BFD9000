@@ -1,6 +1,4 @@
-name: Run Django Tests
-# This uses nix to install all the dependencies for the dev shell.
-# AI should know how to fix it.
+name: Run All Tests
 
 on:
   # Only run when a review is requested on a PR (not on push, open, etc)
@@ -20,4 +18,4 @@ jobs:
 
       - name: Run All tests
         run: |
-          nix flake check
+          nix flake check --keep-going
