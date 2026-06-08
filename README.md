@@ -28,6 +28,14 @@ Other collections, such as [the ones in the AAOF Legacy Collection](https://www.
 - `bfd9000_web/`: Django application for managing and viewing the BFD9000 data.
   To run the application, follow the instructions in `bfd9000_web/README.md`.
 
+## Code Cleanliness
+
+All python code in this repo should follow the ruff and basedpyright restrictions set within `ruff.toml` and `pyrightconfig.json`. Most restrictions apply, primarily for type safety, code cleanliness, documentation, and maintainability. It is recommended to use the `ruff` and `basedpyright` LSPs while developing within this repo in order to maintain these guidelines. Only use `#pyright: ignore[]` or `#noqa: ` comments if absolutely necessary and never ignore all errors for a line, explicitly list which errors are being ignored such that in the future if tooling or dependencies improve, we are able to write more type-safe code. The presence of ANY warnings or errors as a result of ruff or basedpyright will fail the PR workflow immediately.
+
+Formatters are also used within this entire repo, with those specified in the `treefmtconfig` attribute within the `flake.nix`. This primarily exists for non-code files such as markdown, yaml, toml, or sh. To run the formatter, use the `nix fmt` command at the root of the repo. Failing to pass the format check will fail the github checks run during a PR merge.
+
+Lastly, for the web component of this repo, `mypy` is additionally run for stronger type checking on the Django app, as `basedpyright` only does static analysis and cannot deeply analyse complex Django types. Run `mypy` from the root of the web directory in order to see any type mismatches or errors. The presence of any warning or error will immediately fail the PR workflow as well.
+
 ## Docker Notes
 
 When you run the app with Docker you will need a one-time volume ownership fix so the app's non-root user can write media files.

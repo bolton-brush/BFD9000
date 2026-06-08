@@ -9,7 +9,7 @@ To use it, install [Nix](https://nixos.org/download.html) and run the following 
 nix develop
 ```
 
-Alternatively just install django with python.
+Alternatively, obtain all necessary dependencies listed in the `deps` attribute within the `flake.nix`, and run `uv venv` from this directory to obtain the python dependencies. For production testing, use nix as this will maintain a consistent testing environment across development and deployment.
 
 ## Running the Django Application
 
@@ -70,28 +70,40 @@ Useful test options:
 
 **Note**: Tests automatically clean up uploaded media files. Test images are stored in a temporary directory that is deleted after tests complete, so they won't clutter your `media/uploads/` directory.
 
+## Running additional code checks
+
+The checks outlined within the code cleanliness section of the main `README.md` also apply here, be sure to check any of those warnings from `mypy`, `ruff`, or `basedpyright` before completing your PR.
+
 ## Local Docker Workflow
 
-Build the image from the repo root:
+Ensure you are within the nix development shell with `nix develop` or with direnv and `direnv allow`.
+
+Build and load the docker image defined within `flake.nix`:
+
+The `load-podman` utility function is provided for ease of building and loading the docker. It is defined at `nix/load-podman.nix`
 
 ```bash
-docker build -f bfd9000_web/Dockerfile bfd9000_web -t bfd9000-web:test
+load-podman
 ```
+
+This loads the built image into your load podman registry under the name of `localhost/edu.case.bfd9000:latest`.
 
 Run the container directly:
 
 ```bash
-docker run --rm -p 9000:9000 bfd9000-web:test
+podman run --rm -p 9000:9000 localhost/edu.case.bfd9000:latest
 ```
 
 Or use the provided compose file:
 
 ```bash
 # Copy the example env file and edit as needed
-cp bfd9000_web/dot-env.example bfd9000_web/.env
-
-docker compose -f bfd9000_web/docker-compose.yml up
+cd bfd9000_web
+cp .env.example .env
+podman-compose up
 ```
+
+For production, `nix build .#dockerImage` is called directly and uploaded to the OCI store. You may run this manually to dissect the built docker-image if there is confusion about where items exist within the docker.
 
 ## Import Historical Subjects
 

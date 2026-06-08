@@ -9,16 +9,17 @@ help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "%-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 build-test-docker: ## Build test Docker image with compose
-	docker compose -f $(COMPOSE_FILE) build
+    podman-load
+	podman-compose -f $(COMPOSE_FILE) build
 
 set-media-volume-permissions: ## Set permissions for media volume to allow non-root access: see dockers.md
-	docker run --rm -v bfd9000_media_volume:/data alpine sh -c "chown -R 1000:1000 /data"
+	podman run --rm -v bfd9000_media_volume:/data alpine sh -c "chown -R 1000:1000 /data"
 
 run-test-docker: set-media-volume-permissions ## Run test Docker stack with compose
-	docker compose -f $(COMPOSE_FILE) up
+	podman-compose -f $(COMPOSE_FILE) up
 
 build-mock-bfd9010: ## Build mock BFD9010 Docker image
-	docker build -t $(MOCK_BFD9010_IMAGE) dev_tools/mock_bfd9010
+	podman build -t $(MOCK_BFD9010_IMAGE) dev_tools/mock_bfd9010
 
 mock-bfd9010: ## Start the mock BFD9010 scanner service on port 5000
 	python dev_tools/mock_bfd9010/mock_bfd9010.py --host localhost

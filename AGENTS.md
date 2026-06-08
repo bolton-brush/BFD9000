@@ -2,9 +2,11 @@
 
 Currently, the primary development focus is on the Django server in `bfd9000_web`.
 
-Environment setup is now automatic via `direnv` and `.envrc`. Simply `cd` into the repo and run `direnv allow` (once): your local `.venv` will be created (if missing), activated, and Python requirements installed/updated from `bfd9000_web/requirements-dev.txt` as needed. The requirements files are the **only** source of truth for Python dependencies (do not add Python packages to `flake.nix`).
+Environment setup is now automatic via `direnv` and `.envrc`. Simply `cd` into the repo and run `direnv allow` (once): your local `.venv` will be created (if missing), activated, and Python requirements installed/updated from `bfd9000_web/pyproject.toml` as needed, from both the dev and main dependency sections. The `pyproject` files are the **only** source of truth for Python dependencies. Do not add additional python dependencies to the nix flake `flake.nix`, as it exists only to mirror and package the UV dependencies to provide a consistent environment whether using the UV packages or the nix shell by using `uv2nix`. Within the flake, the `venvDev` attribute represents the python environment for development, including all necessary types and hints for proper LSP support and CI checks.
 
-The github action uses the nix flake as well. As a fallback, `nix develop` still works and uses the same `.venv` + requirements files workflow. For Python package dependencies, always update bfd9000_web/requirements.txt (and bfd9000_web/requirements-dev.txt if dev-only). The flake.nix file is only for development shell and must not be the source of truth for Python dependencies.
+The github action uses the nix flake as well, using its respective environment defined within the flake, `venv`, not `venvDev`. The `nix develop` shell provides the `venvDev` environment as well as another other non-python packages required by the program, such as `file` for python-magic and `sqlite` for local development. The `pyproject.toml` is the source of truth for python dependencies and the `flake.nix` is the source of truth for any system dependencies. The additional `nix develop` system dependencies are mirrored exactly into the production build from the `deps` attribute within the flake, this allows a consistent development experience across development and deployment as all system dependencies are also locked exactly.
+
+When updating python dependencies, ensure to explicitly run `uv lock` in order to update the lock file. The nix derivation will automatically use the new dependencies as soon as the `pyproject.toml` and `uv.lock` are added to git (with `git add`). To manage dependencies, instead use the `uv add <pkg>` and `uv remove <pkg>`, and `uv add/remove --dev <pkg>` to add development dependencies, ensure when adding production dependencies to also add them to development, but do not add development dependencies to production. Do NOT use `pip` as this will not be tracked and managed by the build system.
 
 ## Reference
 
@@ -29,8 +31,10 @@ The github action uses the nix flake as well. As a fallback, `nix develop` still
 - Use `cast()` only when direct annotations and normal control-flow typing cannot express the type clearly.
 - Avoid "type-like" protocol/shim objects or other typing-only abstractions that add complexity without improving readability.
 - The goal of typing is clearer code and fewer errors, not extra boilerplate.
-- VSCode + Pylance is the expected type-checking workflow during development.
-- `django-types` should be available in the development environment; it is a dev-time dependency, not a production runtime requirement.
+- Zed + basedpyright + ruff is the expected type-checking workflow during development.
+- `django-stubs` should be available in the development environment; it is both a dev-time and production runtime requirement in order to monkeypatch strong types at production time.
+
+For running linters, checkers, and tests, see `Code Cleanliness` within `README.md` in order to run `ruff`, `mypy`, and `basedpyright`.
 
 Whenever a large change is made, documenting it in `./bfd9000_web/docs` is good practice.
 

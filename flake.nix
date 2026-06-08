@@ -73,6 +73,7 @@
                 nixd
                 uv
                 ruff
+                basedpyright
                 podman
                 podman-compose
               ]
