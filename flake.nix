@@ -51,7 +51,7 @@
             alejandra.enable = true;
             toml-sort.enable = true;
             yamlfmt.enable = true;
-            mdformat.enable = true;
+            # mdformat.enable = true;
             shellcheck.enable = true;
             shfmt.enable = true;
             nixfmt.enable = true;

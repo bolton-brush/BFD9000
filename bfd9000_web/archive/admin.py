@@ -337,6 +337,7 @@ class PhysicalRecordAdmin(admin.ModelAdmin[PhysicalRecord]):
         ("Physical Locations", {"fields": ("locations",)}),
     )
 
+    @admin.display(description="Record Type")
     def record_type_display(self, obj: PhysicalRecord) -> str:  # noqa: PLR6301
         """Get the record type display code for a Physical Record
 
@@ -348,8 +349,6 @@ class PhysicalRecordAdmin(admin.ModelAdmin[PhysicalRecord]):
 
         """
         return obj.record_type.code if obj.record_type else "—"
-
-    record_type_display.short_description = "Record Type"  # pyright: ignore[reportFunctionMemberAccess]
 
 
 @final
@@ -412,6 +411,7 @@ class DigitalRecordAdmin(admin.ModelAdmin[DigitalRecord]):
         ("Files", {"fields": ("source_file", "thumbnail")}),
     )
 
+    @admin.display(description="Record Type")
     def record_type_display(self, obj: DigitalRecord) -> str:  # noqa: PLR6301
         """Get the record type display code for a Digital Record
 
@@ -423,8 +423,6 @@ class DigitalRecordAdmin(admin.ModelAdmin[DigitalRecord]):
 
         """
         return obj.record_type.code if obj.record_type else "—"
-
-    record_type_display.short_description = "Record Type"  # pyright: ignore[reportFunctionMemberAccess]
 
 
 @final

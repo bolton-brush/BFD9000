@@ -1,4 +1,8 @@
-{ writeShellApplication, podman, ... }:
+{
+  writeShellApplication,
+  podman,
+  ...
+}:
 writeShellApplication {
   name = "load-podman";
 

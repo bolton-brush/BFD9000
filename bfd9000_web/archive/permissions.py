@@ -50,12 +50,13 @@ class CuratorOrSuperuserEditPermission(BasePermission):
         model_name = model._meta.model_name
         if model_name is None:
             return False
-        perm = False
-        if request.method == "POST":
-            perm = user.has_perm(f"{app_label}.add_{model_name}")
-        elif request.method in {"PUT", "PATCH"}:
-            perm = user.has_perm(f"{app_label}.change_{model_name}")
-        return perm
+        return (
+            user.has_perm(f"{app_label}.add_{model_name}")
+            if request.method == "POST"
+            else user.has_perm(f"{app_label}.change_{model_name}")
+            if request.method in {"PUT", "PATCH"}
+            else False
+        )
 
 
 class RecordPermission(BasePermission):

@@ -1,4 +1,13 @@
-{ dockerTools, pythonEnv, bfd9000-app, coreutils, bash, deps, file, ... }:
+{
+  dockerTools,
+  pythonEnv,
+  bfd9000-app,
+  coreutils,
+  bash,
+  deps,
+  file,
+  ...
+}:
 dockerTools.buildLayeredImage {
   name = "edu.case.bfd9000";
   tag = "latest";
@@ -8,7 +17,8 @@ dockerTools.buildLayeredImage {
     bfd9000-app
     coreutils
     bash
-  ] ++ deps;
+  ]
+  ++ deps;
 
   fakeRootCommands = ''
     mkdir -p tmp ./var/tmp
@@ -23,7 +33,7 @@ dockerTools.buildLayeredImage {
     Cmd = [ "/share/bfd9000_web/entrypoint.sh" ];
 
     ExposedPorts = {
-      "9000/tcp" = {};
+      "9000/tcp" = { };
     };
 
     Env = [

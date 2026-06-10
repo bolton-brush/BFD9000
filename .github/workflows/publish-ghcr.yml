@@ -6,51 +6,40 @@ on:
   push:
     tags:
       - "v*" # type: line; Only semver tags (v*) publish image, not branches/other refs.
-    # If no version tag is present, the workflow is inert. # type: line; Ensures job only acts when a semver tag is present.
-
+      # If no version tag is present, the workflow is inert. # type: line; Ensures job only acts when a semver tag is present.
 permissions:
   contents: read
   packages: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: cachix/install-nix-action@v30
-
       - name: Run All tests
         run: |
           nix flake check --keep-going
-
   build-and-push:
     runs-on: ubuntu-latest
     needs: [test]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install Nix
         uses: cachix/install-nix-action@v30
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract Docker metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -58,12 +47,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
-
       - name: Build Docker Image with Nix
         run: |
           nix build .#dockerImage --builders ""
           docker load < result
-
       - name: Tag and Push Image to Registry
         run: |
           # Bind local build to remote metadata tag string

@@ -60,3 +60,13 @@ BFD9000_ROOT_UID = "1.3.6.1.4.1.61741.11.8"
 STUDYINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.2"
 SERIESINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.3"
 SOPINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.4"
+
+EXT_TO_MIMES: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("png",): ("image/png",),
+    ("tif", "tiff"): ("image/tiff",),
+    ("stl",): (
+        "application/octet-stream",
+        "model/stl",
+        "text/plain",
+    ),
+}

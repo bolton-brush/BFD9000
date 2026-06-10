@@ -10,6 +10,7 @@ import datetime
 import json
 import logging
 from collections.abc import Iterable, Sequence
+from functools import reduce
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast, final, override
 
@@ -24,6 +25,7 @@ from rest_framework import serializers
 from archive.management.importers.base import Stringable
 
 from .constants import (
+    EXT_TO_MIMES,
     RECORD_TYPE_MODALITY_MAP,
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
     SYSTEM_MODALITY,
@@ -49,7 +51,6 @@ from .models import (
 )
 
 if TYPE_CHECKING:
-
     from django.db.models import QuerySet
     from rest_framework.request import Request
 
@@ -414,7 +415,7 @@ class ImagingStudySerializer(serializers.ModelSerializer[ImagingStudy]):
             else []
         )
 
-        return SeriesSerializer(qs, many=True, context=self.context).data  # pyright: ignore[reportUnknownMemberType, reportReturnType, reportUnknownVariableType]
+        return SeriesSerializer(qs, many=True, context=self.context).data  # type: ignore # pyright: ignore[reportUnknownMemberType, reportReturnType, reportUnknownVariableType]
 
     def _latest_operator(self, obj: ImagingStudy) -> User | None:  # noqa: PLR6301
         # Use prefetched _operator_records if available (set by ImagingStudyViewSet)
@@ -964,7 +965,7 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
 
         # Validate file extension
         ext = (value.name or "").split(".")[-1].lower()
-        if ext not in {"png", "stl", "tif", "tiff"}:
+        if ext not in reduce(lambda a, b: a + b, EXT_TO_MIMES.keys()):
             raise serializers.ValidationError(
                 "Only PNG, TIFF, and STL files are allowed"
             )
@@ -974,21 +975,14 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
             try:
                 mime = magic.from_buffer(value.read(2048), mime=True)  # pyright: ignore[reportAny]
 
-                if ext == "png" and mime != "image/png":
+                valid = reduce(
+                    lambda a, b: a or b,
+                    (mime in m for e, m in EXT_TO_MIMES.items() if ext in e),
+                )
+
+                if not valid:
                     raise serializers.ValidationError(
-                        f"Invalid MIME type for PNG: {mime}"
-                    )
-                if ext in {"tif", "tiff"} and mime != "image/tiff":
-                    raise serializers.ValidationError(
-                        f"Invalid MIME type for TIFF: {mime}"
-                    )
-                if ext == "stl" and mime not in {
-                    "application/octet-stream",
-                    "model/stl",
-                    "text/plain",
-                }:
-                    raise serializers.ValidationError(
-                        f"Invalid MIME type for STL: {mime}"
+                        f"Invalid MIME type for {ext}: {mime}"
                     )
 
             except Exception as e:
@@ -1000,9 +994,9 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
             value.seek(initial_pos)  # pyright: ignore[reportAny]
         return value
 
-    # TODO: refactor this
+    # TODO: refactor this, it's way too complex and prone to erroring
     @override
-    def create(self, validated_data: dict[str, Any]) -> DigitalRecord:  # pyright: ignore[reportExplicitAny]
+    def create(self, validated_data: dict[str, Any]) -> DigitalRecord:  # pyright: ignore[reportExplicitAny]  # noqa: C901, PLR0912, PLR0914, PLR0915
         """Create a new DigitalRecord instance.
 
         Args:
@@ -1179,7 +1173,8 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
             filename = f"{getattr(digital_record, 'pk', digital_record.id)}{ext}"
             digital_record.source_file.save(filename, file_obj, save=False)  # pyright: ignore[reportUnknownMemberType]
 
-            try:
+            # TODO: When refactoring this function, also refactor this try/except
+            try:  # noqa: PLW0717
                 thumb_bytes = None
                 if thumbnail_preview is not None:
                     thumb_bytes = generate_thumbnail_jpeg_bytes(
@@ -1188,15 +1183,12 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
                         transform_ops=None,
                     )
                 else:
-                    file_stream = digital_record.source_file.open("rb")
-                    try:
+                    with digital_record.source_file.open("rb") as file_stream:
                         thumb_bytes = generate_thumbnail_jpeg_bytes(
                             file_stream,
                             digital_record.source_file.name or "",
                             transform_ops=parse_transform_ops(transform_ops),
                         )
-                    finally:
-                        file_stream.close()
 
                 if thumb_bytes:
                     thumb_content = ContentFile(thumb_bytes)

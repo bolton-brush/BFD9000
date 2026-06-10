@@ -167,7 +167,7 @@ class TimestampedModel(models.Model):
         help_text="User who created this record",
     )
     modified_by: models.ForeignKey[User, User | None] = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1289,7 +1289,7 @@ class DigitalRecord(TimestampedModel):
         + "or when born-digital data was acquired",
     )
     operator = models.ForeignKey[User, User | None](
-        settings.AUTH_USER_MODEL,
+        User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

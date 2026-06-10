@@ -262,7 +262,7 @@ class EncounterViewSet(viewsets.ModelViewSet[Encounter]):  # pyright: ignore[rep
     search_fields = ("^subject__identifiers__value",)
 
     @override
-    def perform_create(self, serializer: EncounterSerializer) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def perform_create(self, serializer: EncounterSerializer) -> None:  # type: ignore # pyright: ignore[reportIncompatibleMethodOverride]
         """Custom creation logic to handle subject association and age calculation.
 
         Raises:
@@ -374,7 +374,7 @@ class BoltonRecordSearchFilter(filters.SearchFilter):
     _T = TypeVar("_T", bound=Model)
 
     @override
-    def filter_queryset(
+    def filter_queryset(  # type: ignore
         self, request: Request, queryset: QuerySet[_T], view: APIView
     ) -> QuerySet[_T]:
         search_terms = self.get_search_terms(request)

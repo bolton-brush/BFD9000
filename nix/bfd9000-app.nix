@@ -1,4 +1,8 @@
-{ stdenvNoCC, pythonEnv, ... }:
+{
+  stdenvNoCC,
+  pythonEnv,
+  ...
+}:
 stdenvNoCC.mkDerivation {
   name = "bfd9000-web-prod";
   src = ../bfd9000_web;
