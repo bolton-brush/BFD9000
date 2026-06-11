@@ -9,7 +9,7 @@ help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "%-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 build-test-docker: ## Build test Docker image with compose
-    podman-load
+    load-podman
 	podman-compose -f $(COMPOSE_FILE) build
 
 set-media-volume-permissions: ## Set permissions for media volume to allow non-root access: see dockers.md

@@ -55,7 +55,9 @@ jobs:
         run: |
           # Bind local build to remote metadata tag string
           REMOTE_TAG="${{ steps.meta.outputs.tags }}"
-          docker tag edu.case.bfd9000:latest "$REMOTE_TAG"
-
           echo "Pushing image upstream..."
-          docker push "$REMOTE_TAG"
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag edu.case.bfd9000:latest "$tag"
+            docker push "$tag"
+          done <<< "${{ steps.meta.outputs.tags }}"

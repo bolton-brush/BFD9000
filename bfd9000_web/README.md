@@ -99,7 +99,7 @@ Or use the provided compose file:
 ```bash
 # Copy the example env file and edit as needed
 cd bfd9000_web
-cp .env.example .env
+cp dot-env.example .env
 podman-compose up
 ```
 
