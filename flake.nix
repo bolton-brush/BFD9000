@@ -76,6 +76,7 @@
                 basedpyright
                 podman
                 podman-compose
+                gnumake
               ]
               ++ [
                 venvDev
