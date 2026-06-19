@@ -4,16 +4,18 @@ See also: [Permissions Reference](permissions.md)
 
 The BFD9000 shall be able to accommodate the following use cases.
 
----
+______________________________________________________________________
 
 ## UC01: Add New Records
 
 ### Actors
 
-- **Operator**: A human individual who needs to digitize a physical record into a digital record
+- **Operator**: A human individual who needs to digitize a physical record into a
+  digital record
 - **System**: BFD9000 web application
 - **BFD9010**: The bridge used to connect the scanner with the system
-- **Scanner**: The acquisition modality used to convert the physical record into the digital record
+- **Scanner**: The acquisition modality used to convert the physical record into the
+  digital record
 
 ### Prerequisites
 
@@ -25,16 +27,24 @@ The BFD9000 shall be able to accommodate the following use cases.
 
 ### Steps
 
-1. Operator searches for the subject related to the physical record. If the subject doesn't exist, the operator creates a new subject with a minimum of: subject identifier, collection name, and sex
-2. Operator searches for existing records by age at encounter and record type (e.g., Lateral, PA, Hand) to ensure the record hasn't already been digitized
-3. If the record doesn't exist, the operator proceeds to add a new record
-4. System displays a new view showing the detected scanner and instructions for use (i.e., how to place the physical record into the scanner)
-5. Operator clicks the scan button and waits for the scan to complete
-6. Operator is presented with a preview of the scanned record and verifies that all metadata is appropriately selected (record type, orientation, operator name, date of acquisition, encounter date, collection)
-7. Operator makes any necessary corrections to the metadata using the appropriate fields and dropdown menus (selections preferred over manual text entry)
-8. Once the operator confirms, the digitized record is added to the database. System proceeds to convert it to DICOM and uploads it to a PACS or other DICOM node
+1. Operator searches for the subject related to the physical record. If the subject
+   doesn't exist, the operator creates a new subject with a minimum of: subject
+   identifier, collection name, and sex
+1. Operator searches for existing records by age at encounter and record type (e.g.,
+   Lateral, PA, Hand) to ensure the record hasn't already been digitized
+1. If the record doesn't exist, the operator proceeds to add a new record
+1. System displays a new view showing the detected scanner and instructions for use
+   (i.e., how to place the physical record into the scanner)
+1. Operator clicks the scan button and waits for the scan to complete
+1. Operator is presented with a preview of the scanned record and verifies that all
+   metadata is appropriately selected (record type, orientation, operator name, date of
+   acquisition, encounter date, collection)
+1. Operator makes any necessary corrections to the metadata using the appropriate fields
+   and dropdown menus (selections preferred over manual text entry)
+1. Once the operator confirms, the digitized record is added to the database. System
+   proceeds to convert it to DICOM and uploads it to a PACS or other DICOM node
 
----
+______________________________________________________________________
 
 ## UC02: Browse for Records
 
@@ -52,12 +62,19 @@ Operators need to be able to search for and view specific records.
 
 ### Steps
 
-1. Operator searches for or browses subjects. System displays a list of subjects with: number of encounters per subject, total number of records, sex, dental classification (and/or other clinical information), and collection
-2. Operator clicks on a subject. System displays the subject detail view with more clinical details and a list of all encounters for the subject. The encounter list shows: age of subject at encounter, number of records acquired during encounter, and types of records by modality (e.g., RG, M3D, PX, DX)
-3. Operator selects an encounter. System displays each record for the encounter, showing thumbnails and record details such as: file size, image type, orientation, and other relevant metadata
-4. Operator views the full record
+1. Operator searches for or browses subjects. System displays a list of subjects with:
+   number of encounters per subject, total number of records, sex, dental classification
+   (and/or other clinical information), and collection
+1. Operator clicks on a subject. System displays the subject detail view with more
+   clinical details and a list of all encounters for the subject. The encounter list
+   shows: age of subject at encounter, number of records acquired during encounter, and
+   types of records by modality (e.g., RG, M3D, PX, DX)
+1. Operator selects an encounter. System displays each record for the encounter, showing
+   thumbnails and record details such as: file size, image type, orientation, and other
+   relevant metadata
+1. Operator views the full record
 
----
+______________________________________________________________________
 
 ## UC03: Record Maintenance and Administration
 
@@ -75,13 +92,12 @@ Operators need to be able to search for and view specific records.
 ### Steps
 
 1. Administrator opens the Django admin interface
-2. Administrator navigates to the appropriate model (Subject, Encounter, or Record)
-3. Administrator selects the entity to modify or delete
-4. Administrator performs the desired action (edit metadata, delete record, etc.)
-5. System saves the changes and logs the administrative action
+1. Administrator navigates to the appropriate model (Subject, Encounter, or Record)
+1. Administrator selects the entity to modify or delete
+1. Administrator performs the desired action (edit metadata, delete record, etc.)
+1. System saves the changes and logs the administrative action
 
-
----
+______________________________________________________________________
 
 ## UC04: Export and Sharing
 

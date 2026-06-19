@@ -1,6 +1,6 @@
 # BFD9000 Issue Triage and MVP Planning
 
-**Date:** 2026-02-26  
+**Date:** 2026-02-26\
 **Goal:** Deploy MVP in 2 working days (new scans only, historical cleanup deferred)
 
 ## MVP Scope
@@ -8,12 +8,12 @@
 ### Core Pipeline
 
 1. **BFD9010 scanner** → acquire 2D radiographs
-2. **BFD9000 web app** → operator uploads/manages scans
-3. **BFD9020 AI** → automatic classification, orientation, flip detection
-4. **DICOM conversion** → Secondary Capture (RG modality) using dicom4ortho templates
-5. **Local file storage** → organized folder structure
-6. **Box API upload** → archive to Case Western Box folder structure
-7. **Database indexing** → ImagingStudy, Subject, Encounter, Record models
+1. **BFD9000 web app** → operator uploads/manages scans
+1. **BFD9020 AI** → automatic classification, orientation, flip detection
+1. **DICOM conversion** → Secondary Capture (RG modality) using dicom4ortho templates
+1. **Local file storage** → organized folder structure
+1. **Box API upload** → archive to Case Western Box folder structure
+1. **Database indexing** → ImagingStudy, Subject, Encounter, Record models
 
 ### Out of MVP Scope
 
@@ -23,7 +23,7 @@
 - Individual record/subject detail views (list views sufficient)
 - Timestamp extraction from legacy TIFFs
 
----
+______________________________________________________________________
 
 ## Issue Triage Results
 
@@ -52,39 +52,39 @@ Moved to: <https://github.com/orgs/open-ortho/projects/3>
 
 Should be in: <https://github.com/orgs/open-ortho/projects/1>
 
-| # | Title | Status | Notes |
-|---|---|---|---|
-| **PR #28** | DRF API backend | In Review | Has review comments, nearly ready to merge |
-| **PR #31** | Django UI | Needs Rebase | Must rebase on #28, integrate with API |
-| **PR #21** | bfd9000_dicom DTO refactor | Decision Needed | 4mo old, sources missing - merge, salvage, or skip? |
-| **#14** | Missing DICOMization capabilities | Open | Need full DICOM metadata (PatientAge, Sex, ID, Orientation, AnatomicRegion) |
-| **#19** | Box API integration | Open | Have API keys, need to implement upload |
-| **#22** | Docker deployment | Mostly Done | PR #28 has Dockerfile/compose, verify completeness |
-| **#26** | Implement DRF | Close when #28 merges | Parent issue for PR #28 |
-| **#29** | Restrict records endpoint to read-only | Open | Quick win during #28 review |
-| **#33** | Integrate frontend + backend | Open | Wire #28 API to #31 UI templates |
-| **#36** | Auth on API routes | Open | Security review of PR #28 |
-| **#37** | Secure BFD9020 API (NEW) | Open | Docker internal networking to isolate AI service |
+| #          | Title                                  | Status                | Notes                                                                       |
+| ---------- | -------------------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| **PR #28** | DRF API backend                        | In Review             | Has review comments, nearly ready to merge                                  |
+| **PR #31** | Django UI                              | Needs Rebase          | Must rebase on #28, integrate with API                                      |
+| **PR #21** | bfd9000_dicom DTO refactor             | Decision Needed       | 4mo old, sources missing - merge, salvage, or skip?                         |
+| **#14**    | Missing DICOMization capabilities      | Open                  | Need full DICOM metadata (PatientAge, Sex, ID, Orientation, AnatomicRegion) |
+| **#19**    | Box API integration                    | Open                  | Have API keys, need to implement upload                                     |
+| **#22**    | Docker deployment                      | Mostly Done           | PR #28 has Dockerfile/compose, verify completeness                          |
+| **#26**    | Implement DRF                          | Close when #28 merges | Parent issue for PR #28                                                     |
+| **#29**    | Restrict records endpoint to read-only | Open                  | Quick win during #28 review                                                 |
+| **#33**    | Integrate frontend + backend           | Open                  | Wire #28 API to #31 UI templates                                            |
+| **#36**    | Auth on API routes                     | Open                  | Security review of PR #28                                                   |
+| **#37**    | Secure BFD9020 API (NEW)               | Open                  | Docker internal networking to isolate AI service                            |
 
----
+______________________________________________________________________
 
 ## Key Repositories
 
-| Repo | Purpose | Status |
-|---|---|---|
-| **edu.case.BFD9000** | Main Django web app + DB models | Active development (PR #28, #31) |
-| **edu.case.BFD9010** | 2D scanner control/acquisition | Working (confirmed by user) |
-| **edu.case.BFD9020** | FastAPI AI classification service | Complete and working |
-| **dicom4ortho** | DICOM library for orthodontic images | Needs Secondary Capture templates |
+| Repo                 | Purpose                              | Status                            |
+| -------------------- | ------------------------------------ | --------------------------------- |
+| **edu.case.BFD9000** | Main Django web app + DB models      | Active development (PR #28, #31)  |
+| **edu.case.BFD9010** | 2D scanner control/acquisition       | Working (confirmed by user)       |
+| **edu.case.BFD9020** | FastAPI AI classification service    | Complete and working              |
+| **dicom4ortho**      | DICOM library for orthodontic images | Needs Secondary Capture templates |
 
----
+______________________________________________________________________
 
 ## PRs Needing Attention
 
 ### PR #28: Feature/26 implement DRF (2666 additions, 28 deletions)
 
-**Status:** Open since 2025-12-01, last updated 2026-01-28  
-**Branch:** feature/26-implement-drf-for-backendfrontend-separation  
+**Status:** Open since 2025-12-01, last updated 2026-01-28\
+**Branch:** feature/26-implement-drf-for-backendfrontend-separation\
 **Review Comments:** Multiple unresolved from @zgypa requesting responses
 
 **Implements:**
@@ -108,11 +108,11 @@ Should be in: <https://github.com/orgs/open-ortho/projects/1>
 
 **Decision:** High priority to merge ASAP - foundation for everything else.
 
----
+______________________________________________________________________
 
 ### PR #31: Feature/23 initial django UI (6222 additions, 200 deletions)
 
-**Status:** Open since 2025-12-08, no reviews yet  
+**Status:** Open since 2025-12-08, no reviews yet\
 **Branch:** feature/23-initial-django-ui-new
 
 **Implements:**
@@ -134,17 +134,18 @@ Should be in: <https://github.com/orgs/open-ortho/projects/1>
 
 **Decision:** Block on #28 merge, then rebase and integrate.
 
----
+______________________________________________________________________
 
 ### PR #21: Add DTO for Django app (4697 additions, 458 deletions)
 
-**Status:** Open since 2025-10-11 (4 months old), no recent activity  
+**Status:** Open since 2025-10-11 (4 months old), no recent activity\
 **Branch:** feature/20-bfd9000_dicom-dto
 
 **Implements:**
 
 - Django-style DTO models for DICOM metadata
-- Modality-specific converters (TIFF, PNG, JPEG, PDF, STL, radiograph, surface, document, photograph)
+- Modality-specific converters (TIFF, PNG, JPEG, PDF, STL, radiograph, surface,
+  document, photograph)
 - Core DICOM builder and compression utilities
 - Bolton-Brush metadata extractors
 - Comprehensive test suite and documentation
@@ -158,12 +159,13 @@ Should be in: <https://github.com/orgs/open-ortho/projects/1>
 **Decision Options:**
 
 1. **Abandon** - Use dicom4ortho directly for Secondary Capture conversion
-2. **Salvage** - Cherry-pick useful patterns/architecture into new code
-3. **Restore & Merge** - Find source files and resolve conflicts
+1. **Salvage** - Cherry-pick useful patterns/architecture into new code
+1. **Restore & Merge** - Find source files and resolve conflicts
 
-**Recommendation:** Abandon and focus on dicom4ortho integration - cleaner path for 2-day timeline.
+**Recommendation:** Abandon and focus on dicom4ortho integration - cleaner path for
+2-day timeline.
 
----
+______________________________________________________________________
 
 ## Next Steps (Manual Planning Required)
 
@@ -199,43 +201,48 @@ Should be in: <https://github.com/orgs/open-ortho/projects/1>
 - Historical archive processing (entire project #3)
 - GitHub Actions for GHCR (#30)
 
----
+______________________________________________________________________
 
 ## Comments Added to Issues
 
-✅ **#32** - Noted that scanner integration may be done in PR #28 (file upload API exists)  
-✅ **#34** - Noted that record detail view partially exists in PR #28/#31  
-✅ **#35** - Noted that subject list/create exists, detail view deferred  
-✅ **#22** - Noted that Docker files exist in PR #28, verify completeness  
-✅ **#24** - Confirmed complete based on BFD9020 working demo, closed  
+✅ **#32** - Noted that scanner integration may be done in PR #28 (file upload API
+exists)\
+✅ **#34** - Noted that record detail view partially exists in PR #28/#31\
+✅ **#35** - Noted that subject list/create exists, detail view deferred\
+✅ **#22** - Noted that Docker files exist in PR #28, verify completeness\
+✅ **#24** - Confirmed complete based on BFD9020 working demo, closed\
 ✅ **#37** - NEW ISSUE created for BFD9020 API security via Docker networking
 
----
+______________________________________________________________________
 
 ## Outstanding Questions for User
 
 1. **PR #21 decision:** Abandon, salvage, or restore/merge the bfd9000_dicom DTO work?
-2. **dicom4ortho cleanup:** What specific Secondary Capture templates need to be added?
-3. **Box API structure:** What's the desired folder hierarchy in Box?
-4. **DICOM metadata:** Which fields should operators enter vs. auto-extract for new scans?
-5. **PR #28 merge strategy:** Fast-track with known issues or full review resolution first?
+1. **dicom4ortho cleanup:** What specific Secondary Capture templates need to be added?
+1. **Box API structure:** What's the desired folder hierarchy in Box?
+1. **DICOM metadata:** Which fields should operators enter vs. auto-extract for new
+   scans?
+1. **PR #28 merge strategy:** Fast-track with known issues or full review resolution
+   first?
 
----
+______________________________________________________________________
 
 ## LLM Tool Recommendation
 
-**Use Claude Opus/Sonnet 4 via OpenCode (current session)** - Best for interactive multi-repo integration work with human steering of key decisions.
+**Use Claude Opus/Sonnet 4 via OpenCode (current session)** - Best for interactive
+multi-repo integration work with human steering of key decisions.
 
-**Why not Gemini:** Codebase is ~10k-20k lines total across all repos, fits comfortably in Claude's context. Quality of reasoning > raw context size for this task.
+**Why not Gemini:** Codebase is ~10k-20k lines total across all repos, fits comfortably
+in Claude's context. Quality of reasoning > raw context size for this task.
 
-**Why not Codex async:** Loss of interactive feedback loop. The bottleneck is integration decisions needing human judgment, not LLM capability.
+**Why not Codex async:** Loss of interactive feedback loop. The bottleneck is
+integration decisions needing human judgment, not LLM capability.
 
----
+______________________________________________________________________
 
 ## Project Board Organization
 
-**MVP Project (Project #1):**
-<https://github.com/orgs/open-ortho/projects/1/views/3>
+**MVP Project (Project #1):** <https://github.com/orgs/open-ortho/projects/1/views/3>
 
 - All issues on Critical Path above
 - PRs #28, #31
