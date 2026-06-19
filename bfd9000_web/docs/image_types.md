@@ -1,4 +1,10 @@
-code,meaning,original_medium L,Lateral Ceph,Acetate Film F,Frontal Ceph,Acetate Film
-P,Pelvis,Acetate Film FA,Foot & Ankle,Acetate Film H,Hand & Wrist,Acetate Film RE,Record
-of Examination,Paper RF,Record of Facial and Jaw Examination,Paper SM,Scan of Study
-Model,Gypsum FM,Scan of Facial Moulage,Gypsum
+- code,meaning,original_medium
+- L,Lateral Ceph,Acetate Film
+- F,Frontal Ceph,Acetate Film
+- P,Pelvis,Acetate Film
+- FA,Foot & Ankle,Acetate Film
+- H,Hand & Wrist,Acetate Film
+- RE,Record of Examination,Paper
+- RF,Record of Facial and Jaw Examination,Paper
+- SM,Scan of Study Model,Gypsum
+- FM,Scan of Facial Moulage,Gypsum

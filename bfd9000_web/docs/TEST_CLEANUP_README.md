@@ -41,9 +41,10 @@ All test classes now inherit from `CleanupAPITestCase`:
 
 ## Benefits
 
-✅ **Automatic cleanup** - No manual file deletion needed ✅ **Isolated** - Test files
-don't mix with real media files ✅ **Safe** - Production media files are never touched ✅
-**Clean** - Each test run starts fresh
+- **Automatic cleanup** - No manual file deletion needed
+- **Isolated** - Test files don't mix with real media files
+- **Safe** - Production media files are never touched
+- **Clean** - Each test run starts fresh
 
 ## Verification
 
