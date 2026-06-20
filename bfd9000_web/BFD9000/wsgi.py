@@ -1,5 +1,4 @@
-"""
-WSGI config for BFD9000 project.
+"""WSGI config for BFD9000 project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +10,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "BFD9000.settings")
+_ = os.environ.setdefault("DJANGO_SETTINGS_MODULE", "BFD9000.settings")
 
 application = get_wsgi_application()

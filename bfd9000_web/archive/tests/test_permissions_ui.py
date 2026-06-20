@@ -1,4 +1,5 @@
 """UI permission tests for subject and encounter create buttons."""
+# ruff: noqa: S106
 
 from django.contrib.auth.models import Permission, User
 from django.test import override_settings
@@ -10,13 +11,16 @@ from .base import CleanupTestCase
 @override_settings(
     STORAGES={
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        },
     }
 )
 class PermissionUiTests(CleanupTestCase):
     """Verify template button visibility follows Django permissions."""
 
-    def test_regular_user_does_not_see_create_buttons(self):
+    def test_regular_user_does_not_see_create_buttons(self) -> None:
+        """Ensures regular users are not able to create new subjects/encounters"""
         user = User.objects.create_user(username="regular", password="testpassword")
         self.client.force_login(user)
 
@@ -28,11 +32,12 @@ class PermissionUiTests(CleanupTestCase):
         self.assertNotContains(subjects_response, "New Subject")
         self.assertNotContains(encounters_response, "New Encounter")
 
-    def test_curator_like_user_sees_create_buttons(self):
+    def test_curator_like_user_sees_create_buttons(self) -> None:
+        """Ensures curators are not able to create new subjects/encounters"""
         user = User.objects.create_user(username="curator", password="testpassword")
         add_subject = Permission.objects.get(codename="add_subject")
         add_encounter = Permission.objects.get(codename="add_encounter")
-        user.user_permissions.add(add_subject, add_encounter)
+        user.user_permissions.add(add_subject, add_encounter)  # pyright: ignore[reportUnknownMemberType]
 
         self.client.force_login(user)
 

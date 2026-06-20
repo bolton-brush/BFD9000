@@ -15,13 +15,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   bfd9000:
-    image: ghcr.io/open-ortho/edu.case.bfd9000:local
+    # image: ghcr.io/open-ortho/edu.case.bfd9000:local
+    image: localhost/edu.case.bfd9000:latest
     container_name: bfd9000
-    build:
-      context: .
-      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:9000:9000"
     depends_on:
@@ -51,13 +48,12 @@ services:
 
       # Subpath emulation mode (access app at http://localhost:9000/bfd9000/):
       # Enable BOTH lines below to emulate a proxy-mounted prefix locally.
-      - DJANGO_FORCE_SCRIPT_NAME=/bfd9000
-      - SCRIPT_NAME=/bfd9000
+      # - DJANGO_FORCE_SCRIPT_NAME=/bfd9000
+      # - SCRIPT_NAME=/bfd9000
       - BFD9020_BASE_URL=http://localhost:9020
       # - BFD9020_BASE_URL=https://wingate.case.edu/bfd9020
-      
-      - SCANNER_API_BASE=http://127.0.0.1:9010
 
+      - SCANNER_API_BASE=http://127.0.0.1:9010
   bfd9020:
     image: ghcr.io/open-ortho/edu.case.bfd9020:local
     container_name: bfd9020
@@ -67,7 +63,6 @@ services:
       LOG_LEVEL: "INFO"
       ROOT_PATH: ""
       ENABLE_DOCS: "true"
-
   mock-bfd9010:
     image: mock-bfd9010:local
     container_name: mock_bfd9010
@@ -76,7 +71,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:9010:9010"
-
 volumes:
   media_volume:
   postgres_data:

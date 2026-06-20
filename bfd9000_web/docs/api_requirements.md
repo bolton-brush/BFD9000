@@ -18,7 +18,7 @@
     - [4. Record Management](#4-record-management)
       - [4.1 List Records for Encounter](#41-list-records-for-encounter)
       - [4.2 Search Records (Alternative)](#42-search-records-alternative)
-    - [5. Record Creation \& Management](#5-record-creation--management)
+    - [5. Record Creation & Management](#5-record-creation--management)
       - [5.1 Create Record with File Upload](#51-create-record-with-file-upload)
       - [5.2 Get Record Details](#52-get-record-details)
       - [5.3 Update Record Metadata](#53-update-record-metadata)
@@ -56,25 +56,33 @@
     - [Image Serving](#image-serving)
     - [Total Endpoints: 20](#total-endpoints-20)
 
-Based on the use cases defined in `use_cases.md`, the following API endpoints are required to support the frontend workflow.
+Based on the use cases defined in `use_cases.md`, the following API endpoints are
+required to support the frontend workflow.
 
-**Note**: UC03 (Record maintenance and administration) will use Django's built-in admin interface and does not require custom API endpoints.
+**Note**: UC03 (Record maintenance and administration) will use Django's built-in admin
+interface and does not require custom API endpoints.
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## UC01: Add New Records - API Requirements
 
 ### Complete Workflow for UC01
 
 1. **Search for subject** → `GET /api/subjects/?search={identifier}`
-2. **Create subject if not found** → `POST /api/subjects/`
-3. **Create or select encounter** → `POST /api/subjects/{subject_id}/encounters/` or select existing
-4. **Check for duplicate records** → `GET /api/subjects/{subject_id}/records/?age_at_encounter={age}&record_type={type}`
-5. **Get form options** → Fetch required valuesets in parallel using type parameter (e.g., `GET /api/valuesets/?type=record_types`, `GET /api/valuesets/?type=orientations`, etc.)
-6. **User scans via localhost** → Browser communicates with BFD9010 bridge on localhost, receives PNG or STL file
-7. **Upload and create record with metadata** → `POST /api/encounters/{encounter_id}/records/` with file upload
+1. **Create subject if not found** → `POST /api/subjects/`
+1. **Create or select encounter** → `POST /api/subjects/{subject_id}/encounters/` or
+   select existing
+1. **Check for duplicate records** →
+   `GET /api/subjects/{subject_id}/records/?age_at_encounter={age}&record_type={type}`
+1. **Get form options** → Fetch required valuesets in parallel using type parameter
+   (e.g., `GET /api/valuesets/?type=record_types`,
+   `GET /api/valuesets/?type=orientations`, etc.)
+1. **User scans via localhost** → Browser communicates with BFD9010 bridge on localhost,
+   receives PNG or STL file
+1. **Upload and create record with metadata** →
+   `POST /api/encounters/{encounter_id}/records/` with file upload
 
-### 1\. Subject Management
+### 1. Subject Management
 
 #### 1.1 Search for Subject
 
@@ -83,6 +91,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/subjects/?search={query}`
+
 - **Query Parameters**:
 
   - `search`: subject identifier (string)
@@ -92,7 +101,8 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 - **Response**: Paginated list of matching subjects with fields:
 
-  - `id`, `identifier`, `collection` (subject-level dataset short name), `sex`, `date_of_birth` (optional), `dental_classification`, `created_date`
+  - `id`, `identifier`, `collection` (subject-level dataset short name), `sex`,
+    `date_of_birth` (optional), `dental_classification`, `created_date`
   - `encounter_count`: total number of encounters
   - `record_count`: total number of records
 
@@ -103,6 +113,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `POST /api/subjects/`
+
 - **Request Body** (required fields):
 
   - `identifier` (string)
@@ -116,7 +127,10 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 - **Response**: Created subject object with generated `id` and all fields
 
-> **Important:** Collections live on the subject. Encounters, imaging studies, and records inherit `subject.collection` automatically and therefore no longer expose their own `collection` field. Attempting to upload a record for a subject without a collection results in a `400 Bad Request` response.
+> **Important:** Collections live on the subject. Encounters, imaging studies, and
+> records inherit `subject.collection` automatically and therefore no longer expose
+> their own `collection` field. Attempting to upload a record for a subject without a
+> collection results in a `400 Bad Request` response.
 
 #### 1.3 Get Subject Details
 
@@ -125,14 +139,16 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/subjects/{id}/`
+
 - **Response**: Complete subject object with:
 
   - All subject fields
-  - `encounters`: array of basic encounter info (id, encounter_date, age_at_encounter, record_count)
+  - `encounters`: array of basic encounter info (id, encounter_date, age_at_encounter,
+    record_count)
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
-### 2\. Encounter Management
+### 2. Encounter Management
 
 #### 2.1 List Encounters for Subject
 
@@ -141,6 +157,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/subjects/{subject_id}/encounters/`
+
 - **Query Parameters**:
 
   - `page`: pagination page number
@@ -159,10 +176,12 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `POST /api/subjects/{subject_id}/encounters/`
+
 - **Request Body**:
 
   - `encounter_date` (date, required)
-  - `age_at_encounter` (float, optional - can be calculated from subject DOB if available)
+  - `age_at_encounter` (float, optional - can be calculated from subject DOB if
+    available)
 
 - **Response**: Created encounter object with `id`
 
@@ -173,6 +192,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/encounters/{id}/`
+
 - **Response**: Complete encounter object with:
 
   - `id`, `subject_id`, `encounter_date`, `age_at_encounter`
@@ -198,11 +218,12 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 - **Endpoint**: `DELETE /api/encounters/{id}/`
 - **Response**: 204 No Content on success
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
-### 3\. Valuesets
+### 3. Valuesets
 
-**Purpose**: Valuesets provide enumerated options for dropdown fields and validation. Valuesets are dynamic and can be queried by type.
+**Purpose**: Valuesets provide enumerated options for dropdown fields and validation.
+Valuesets are dynamic and can be queried by type.
 
 **Response Format**: All valueset queries return an array of objects with:
 
@@ -222,7 +243,8 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 **Supported Valueset Types**:
 
-- **`record_types`**: Available record type options (CWRU Ortho Record Types ValueSet: `https://orthodontics.case.edu/fhir/cwru-ortho-record-types`)
+- **`record_types`**: Available record type options (CWRU Ortho Record Types ValueSet:
+  `https://orthodontics.case.edu/fhir/cwru-ortho-record-types`)
 - **`orientations`**: Available orientation options
 - **`collections`**: Available collection names
 - **`sex_options`**: Available sex/gender options
@@ -250,9 +272,11 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 **Note**:
 
-- The `id` field contains the code/identifier stored in the database and submitted in API requests
+- The `id` field contains the code/identifier stored in the database and submitted in
+  API requests
 - The `display` field contains localized, human-readable text for UI display
-- Actual values returned are managed in the database and can be added/modified without changing this API specification
+- Actual values returned are managed in the database and can be added/modified without
+  changing this API specification
 - Frontend displays `display` in dropdowns but submits `id` back to the API
 
 **Error Responses**:
@@ -260,9 +284,9 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 - `400 Bad Request` - Missing or invalid `type` parameter
 - `404 Not Found` - Unknown valueset type
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
-### 4\. Record Management
+### 4. Record Management
 
 #### 4.1 List Records for Encounter
 
@@ -271,6 +295,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/encounters/{encounter_id}/records/`
+
 - **Query Parameters**:
 
   - `record_type`: filter by type
@@ -292,6 +317,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/subjects/{subject_id}/records/`
+
 - **Query Parameters**:
 
   - `age_at_encounter`: filter by age (float)
@@ -301,32 +327,40 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 - **Response**: Same as 4.1
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
-### 5\. Record Creation & Management
+### 5. Record Creation & Management
 
 #### 5.1 Create Record with File Upload
 
-**User Action**: Operator uploads scanned file (PNG or STL) and creates record with metadata
+**User Action**: Operator uploads scanned file (PNG or STL) and creates record with
+metadata
 
-**Note**: Scanning happens directly on localhost via BFD9010 bridge. The frontend communicates with the bridge, receives the file, and then uploads it to BFD9000.
+**Note**: Scanning happens directly on localhost via BFD9010 bridge. The frontend
+communicates with the bridge, receives the file, and then uploads it to BFD9000.
 
 **API Requirement**:
 
 - **Endpoint**: `POST /api/encounters/{encounter_id}/records/`
+
 - **Content-Type**: `multipart/form-data`
+
 - **Request Body** (form fields):
 
   - `file` (file upload, required): PNG or STL file from scanner
-  - `thumbnail_preview` (file upload, optional): preprocessed preview PNG from UI pipeline; used as thumbnail source when provided
+  - `thumbnail_preview` (file upload, optional): preprocessed preview PNG from UI
+    pipeline; used as thumbnail source when provided
   - `record_type` (string, required): value from `/api/valuesets/?type=record_types`
   - `orientation` (string, required): value from `/api/valuesets/?type=orientations`
-  - `modality` (string, optional): value from `/api/valuesets/?type=modalities` (if omitted, inferred from `record_type`)
+  - `modality` (string, optional): value from `/api/valuesets/?type=modalities` (if
+    omitted, inferred from `record_type`)
   - `operator` (string, optional - defaults to authenticated user)
   - `acquisition_date` (date, optional - defaults to today)
   - `notes` (string, optional)
 
-**Prerequisite**: The encounter’s subject must be assigned to a collection before uploading. The record and its imaging study automatically inherit that collection; no collection field is accepted in this payload.
+**Prerequisite**: The encounter’s subject must be assigned to a collection before
+uploading. The record and its imaging study automatically inherit that collection; no
+collection field is accepted in this payload.
 
 - **Response**: Created record object with:
 
@@ -339,11 +373,15 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
   - `image_type` (string): e.g., "TIFF", "JPEG2000" (after conversion)
   - `thumbnail_url` (string): path to thumbnail (served via API)
   - `image_url` (string): path to full image (served via API)
-  - `dicom_status` (string): "pending", "processing", "complete", "failed" (for backend tracking)
-  - `pacs_status` (string): "pending", "uploading", "complete", "failed" (for backend tracking)
+  - `dicom_status` (string): "pending", "processing", "complete", "failed" (for backend
+    tracking)
+  - `pacs_status` (string): "pending", "uploading", "complete", "failed" (for backend
+    tracking)
   - `created_at` (datetime)
 
-**Note**: DICOM conversion and PACS upload happen asynchronously in the background. Status fields are included for informational purposes but no user action is required. Failed operations are handled by backend monitoring/alerting systems.
+**Note**: DICOM conversion and PACS upload happen asynchronously in the background.
+Status fields are included for informational purposes but no user action is required.
+Failed operations are handled by backend monitoring/alerting systems.
 
 #### 5.2 Get Record Details
 
@@ -352,6 +390,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/records/{id}/`
+
 - **Response**: Complete record object (same fields as 5.1) plus:
 
   - `encounter`: nested encounter object with subject info
@@ -365,6 +404,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `PATCH /api/records/{id}/`
+
 - **Request Body**: Partial update of editable fields:
 
   - `record_type`, `orientation`, `modality`
@@ -372,7 +412,8 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 
 - **Response**: Updated record object
 
-- **Note**: Cannot change `encounter_id` after creation. File cannot be replaced after upload.
+- **Note**: Cannot change `encounter_id` after creation. File cannot be replaced after
+  upload.
 
 #### 5.4 Delete Record
 
@@ -384,11 +425,12 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 - **Response**: 204 No Content on success
 - **Validation**: May prevent deletion if record has been uploaded to PACS
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
-### 6\. Image Serving
+### 6. Image Serving
 
-**Strategy**: All images are served through authenticated API endpoints to maintain access control.
+**Strategy**: All images are served through authenticated API endpoints to maintain
+access control.
 
 #### 6.1 Get Record Full Image
 
@@ -397,7 +439,8 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/records/{id}/image/`
-- **Response**: Raw source artifact as stored (unmodified passthrough), with source `Content-Type` (image/png, image/tiff, image/jpeg, model/stl, etc.)
+- **Response**: Raw source artifact as stored (unmodified passthrough), with source
+  `Content-Type` (image/png, image/tiff, image/jpeg, model/stl, etc.)
 - **Authentication**: Required
 - **Caching**: Support `ETag` and `Last-Modified` headers
 
@@ -408,10 +451,13 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 **API Requirement**:
 
 - **Endpoint**: `GET /api/records/{id}/thumbnail/`
-- **Response**: Stored JPEG thumbnail image (max 300x300px, target ~20KB, hard limit 100KB); returns static fallback if thumbnail does not exist
+- **Response**: Stored JPEG thumbnail image (max 300x300px, target ~20KB, hard limit
+  100KB); returns static fallback if thumbnail does not exist
 - **Authentication**: Required
 - **Caching**: Support `ETag` and `Last-Modified` headers
-- **Note**: Thumbnails are generated only at ingest/upload time for raster images (PNG, TIFF, JPEG). For 3D file types (STL, PLY, OBJ), no generated thumbnail is stored; endpoint serves static fallback image as `image/jpeg` with HTTP 200.
+- **Note**: Thumbnails are generated only at ingest/upload time for raster images (PNG,
+  TIFF, JPEG). For 3D file types (STL, PLY, OBJ), no generated thumbnail is stored;
+  endpoint serves static fallback image as `image/jpeg` with HTTP 200.
 
 #### 6.3 Get Record DICOM File
 
@@ -424,11 +470,12 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 - **Authentication**: Required
 - **Note**: Returns 404 if DICOM conversion not yet complete
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## UC02: Browse for Records - API Requirements
 
-**Note**: Browse endpoints are covered in sections 1-4 above. This section provides the complete workflow mapping.
+**Note**: Browse endpoints are covered in sections 1-4 above. This section provides the
+complete workflow mapping.
 
 ### Workflow Mapping
 
@@ -453,7 +500,7 @@ Based on the use cases defined in `use_cases.md`, the following API endpoints ar
 - **Use**: `GET /api/records/{id}/image/` (Section 6.1) to display image
 - Returns complete record metadata and serves full-resolution image
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## UC04: Export and Sharing - API Requirements
 
@@ -472,7 +519,7 @@ Potential endpoints:
 - `GET /api/exports/{id}/` - Check export status
 - `GET /api/exports/{id}/download/` - Download completed export package
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## Design Notes and Conventions
 
@@ -507,7 +554,8 @@ The API follows a clear resource hierarchy:
 
 ### Image URLs
 
-- `image_url`, `thumbnail_url`, `dicom_url` fields contain **relative paths**, not full URLs
+- `image_url`, `thumbnail_url`, `dicom_url` fields contain **relative paths**, not full
+  URLs
 - Example: `"/api/records/123/image/"` not `"http://server/api/records/123/image/"`
 - Frontend constructs full URL using base API URL
 - This approach maintains portability across environments
@@ -536,11 +584,11 @@ Standardized status values:
 For long-running operations (scans, DICOM conversion), clients can:
 
 1. **Poll** the resource endpoint (simple, recommended for MVP)
-2. **WebSocket** (future): Connect to `ws://server/api/{resource}/{id}/stream/`
+1. **WebSocket** (future): Connect to `ws://server/api/{resource}/{id}/stream/`
 
 Polling recommended interval: 1-2 seconds during active operations
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## Error Handling and HTTP Status Codes
 
@@ -605,7 +653,8 @@ All error responses follow this structure:
 **Encounter Creation**:
 
 - `encounter_date` cannot be in the future
-- If `age_at_encounter` not provided and subject has `date_of_birth`, calculate automatically
+- If `age_at_encounter` not provided and subject has `date_of_birth`, calculate
+  automatically
 - Cannot create encounter with date before subject's `date_of_birth`
 
 **Record Creation**:
@@ -614,60 +663,65 @@ All error responses follow this structure:
 - Maximum file size: 100MB (configurable)
 - `record_type` must be a valid value from `/api/valuesets/?type=record_types`
 - `orientation` must be a valid value from `/api/valuesets/?type=orientations`
-- `modality` must be a valid value from `/api/valuesets/?type=modalities` when provided; otherwise it is inferred from `record_type`
-- Encounter subject must already belong to a valid collection; uploads are rejected otherwise
+- `modality` must be a valid value from `/api/valuesets/?type=modalities` when provided;
+  otherwise it is inferred from `record_type`
+- Encounter subject must already belong to a valid collection; uploads are rejected
+  otherwise
 - `acquisition_date` cannot be in the future
 - File content must match file extension (validated via magic bytes)
 
---------------------------------------------------------------------------------
+______________________________________________________________________
 
 ## Summary of Required Endpoints
 
 ### Subject Management
 
-Method | Endpoint              | Purpose
------- | --------------------- | ---------------------------------------
-GET    | `/api/subjects/`      | Search/browse subjects with pagination
-POST   | `/api/subjects/`      | Create new subject
-GET    | `/api/subjects/{id}/` | Get subject details with encounter list
+| Method | Endpoint              | Purpose                                 |
+| ------ | --------------------- | --------------------------------------- |
+| GET    | `/api/subjects/`      | Search/browse subjects with pagination  |
+| POST   | `/api/subjects/`      | Create new subject                      |
+| GET    | `/api/subjects/{id}/` | Get subject details with encounter list |
 
 ### Encounter Management
 
-Method | Endpoint                                 | Purpose
------- | ---------------------------------------- | ---------------------------
-GET    | `/api/subjects/{subject_id}/encounters/` | List encounters for subject
-POST   | `/api/subjects/{subject_id}/encounters/` | Create new encounter
-GET    | `/api/encounters/{id}/`                  | Get encounter with records
-PATCH  | `/api/encounters/{id}/`                  | Update encounter metadata
-DELETE | `/api/encounters/{id}/`                  | Delete encounter (admin)
+| Method | Endpoint                                 | Purpose                     |
+| ------ | ---------------------------------------- | --------------------------- |
+| GET    | `/api/subjects/{subject_id}/encounters/` | List encounters for subject |
+| POST   | `/api/subjects/{subject_id}/encounters/` | Create new encounter        |
+| GET    | `/api/encounters/{id}/`                  | Get encounter with records  |
+| PATCH  | `/api/encounters/{id}/`                  | Update encounter metadata   |
+| DELETE | `/api/encounters/{id}/`                  | Delete encounter (admin)    |
 
 ### Valuesets
 
-Method | Endpoint           | Purpose
------- | ------------------ | ---------------------------------------
-GET    | `/api/valuesets/`  | Get valueset by type (query parameter)
+| Method | Endpoint          | Purpose                                |
+| ------ | ----------------- | -------------------------------------- |
+| GET    | `/api/valuesets/` | Get valueset by type (query parameter) |
 
 ### Record Management
 
-Method | Endpoint                                  | Purpose
------- | ----------------------------------------- | -----------------------------
-GET    | `/api/encounters/{encounter_id}/records/` | List records in encounter
-GET    | `/api/subjects/{subject_id}/records/`     | Search records across subject
-POST   | `/api/encounters/{encounter_id}/records/` | Create record from scan
-GET    | `/api/records/{id}/`                      | Get complete record details
-PATCH  | `/api/records/{id}/`                      | Update record metadata
-DELETE | `/api/records/{id}/`                      | Delete record
+| Method | Endpoint                                  | Purpose                       |
+| ------ | ----------------------------------------- | ----------------------------- |
+| GET    | `/api/encounters/{encounter_id}/records/` | List records in encounter     |
+| GET    | `/api/subjects/{subject_id}/records/`     | Search records across subject |
+| POST   | `/api/encounters/{encounter_id}/records/` | Create record from scan       |
+| GET    | `/api/records/{id}/`                      | Get complete record details   |
+| PATCH  | `/api/records/{id}/`                      | Update record metadata        |
+| DELETE | `/api/records/{id}/`                      | Delete record                 |
 
 ### Image Serving
 
-Method | Endpoint                       | Purpose
------- | ------------------------------ | ---------------------------
-GET    | `/api/records/{id}/image/`     | Serve full-resolution image
-GET    | `/api/records/{id}/thumbnail/` | Serve thumbnail image
-GET    | `/api/records/{id}/dicom/`     | Download DICOM file
+| Method | Endpoint                       | Purpose                     |
+| ------ | ------------------------------ | --------------------------- |
+| GET    | `/api/records/{id}/image/`     | Serve full-resolution image |
+| GET    | `/api/records/{id}/thumbnail/` | Serve thumbnail image       |
+| GET    | `/api/records/{id}/dicom/`     | Download DICOM file         |
 
 ### Total Endpoints: 20
 
-All endpoints support proper REST semantics with appropriate HTTP verbs and status codes.
+All endpoints support proper REST semantics with appropriate HTTP verbs and status
+codes.
 
-**Note**: Scanner integration is handled entirely on localhost via BFD9010 bridge. The frontend communicates directly with the bridge, and BFD9000 only receives the resulting PNG or STL file via the record creation endpoint.
+**Note**: Scanner integration is handled entirely on localhost via BFD9010 bridge. The
+frontend communicates directly with the bridge, and BFD9000 only receives the resulting
+PNG or STL file via the record creation endpoint.

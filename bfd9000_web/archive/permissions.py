@@ -1,21 +1,35 @@
-# pyright: reportIncompatibleMethodOverride=false
+"""Endpoint Permission"""
 
-from typing import Any
+from typing import TYPE_CHECKING, cast, override
 
-from django.db.models import Model
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser, User
+    from django.db.models import Model
 
 
 class CuratorOrSuperuserEditPermission(BasePermission):
     """Require model add/change perms for writes and auth for reads."""
 
-    def has_permission(self, request: Request, view: Any):  # pyright: ignore[reportIncompatibleMethodOverride]
-        if not request.user or not request.user.is_authenticated:
+    @override
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """Checks if a user has permission to access a view
+
+        Args:
+            request: The request to check
+            view: The view to check against
+
+        Returns:
+            True if authenticated
+
+        """
+        user = cast("User | AnonymousUser | None", request.user)
+        if not user or not user.is_authenticated:
             return False
-        if request.user.is_superuser:
-            return True
-        if request.method in SAFE_METHODS:
+        if user.is_superuser or request.method in SAFE_METHODS:
             return True
         if request.method == "DELETE":
             return False
@@ -23,7 +37,9 @@ class CuratorOrSuperuserEditPermission(BasePermission):
         qs = getattr(view, "queryset", None)
         if qs is None and hasattr(view, "get_queryset"):
             try:
-                qs = view.get_queryset()
+                gqs = getattr(view, "get_queryset", None)
+                if callable(gqs):
+                    qs = gqs()
             except Exception:
                 qs = None
         model: type[Model] | None = getattr(qs, "model", None)
@@ -34,19 +50,23 @@ class CuratorOrSuperuserEditPermission(BasePermission):
         model_name = model._meta.model_name
         if model_name is None:
             return False
-        if request.method == "POST":
-            return request.user.has_perm(f"{app_label}.add_{model_name}")
-        if request.method in {"PUT", "PATCH"}:
-            return request.user.has_perm(f"{app_label}.change_{model_name}")
-        return False
+        return (
+            user.has_perm(f"{app_label}.add_{model_name}")
+            if request.method == "POST"
+            else user.has_perm(f"{app_label}.change_{model_name}")
+            if request.method in {"PUT", "PATCH"}
+            else False
+        )
 
 
 class RecordPermission(BasePermission):
     """Allow authenticated users to read/create/update records."""
 
-    def has_permission(self, request: Request, view: Any):  # pyright: ignore[reportIncompatibleMethodOverride]
-        if not request.user or not request.user.is_authenticated:
+    @override
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        user = cast("User | AnonymousUser | None", request.user)
+        if not user or not user.is_authenticated:
             return False
         if request.method == "DELETE":
-            return bool(request.user.is_superuser)
+            return bool(user.is_superuser)
         return True

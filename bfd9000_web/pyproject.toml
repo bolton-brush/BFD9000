@@ -1,0 +1,73 @@
+[dependency-groups]
+dev = [
+  "cryptography>=44.0,<45.0",
+  "django>=6.0,<7.0",
+  "django-cors-headers>=4.0,<5.0",
+  "django-filter>=25.0,<26.0",
+  "django-stubs>=6.0,<7.0",
+  "djangorestframework>=3.14,<4.0",
+  "djangorestframework-stubs>=3.14,<4.0",
+  "drf-nested-routers>=0.93,<1.0",
+  "drf-spectacular>=0.27,<1.0",
+  "gunicorn>=21.0,<22.0",
+  "mypy>=1.20",
+  "openpyxl>=3.1,<4.0",
+  "pillow>=10.0,<11.0",
+  "psycopg2-binary>=2.9,<3.0",
+  "pydicom>=3.0,<4.0",
+  "pytest>=8.0,<10.0",
+  "pytest-django>=4.10,<5.0",
+  "python-magic>=0.4,<1.0",
+  "whitenoise>=6.6,<7.0"
+]
+
+[project]
+name = "bfd9000-web"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "cryptography>=44.0,<45.0",
+  "django>=6.0,<7.0",
+  "django-cors-headers>=4.0,<5.0",
+  "django-filter>=25.0,<26.0",
+  "django-stubs>=6.0,<7.0",
+  "djangorestframework>=3.14,<4.0",
+  "drf-nested-routers>=0.93,<1.0",
+  "drf-spectacular>=0.27,<1.0",
+  "gunicorn>=21.0,<22.0",
+  "openpyxl>=3.1,<4.0",
+  "pillow>=10.0,<11.0",
+  "psycopg2-binary>=2.9,<3.0",
+  "pydicom>=3.0,<4.0",
+  "python-magic>=0.4,<1.0",
+  "whitenoise>=6.6,<7.0"
+]
+
+[tool.django-stubs]
+django_settings_module = "BFD9000.settings"
+
+[tool.mypy]
+files = ["."]
+strict = true
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+
+# This ignores the management, mirations, and tests directories,
+# as they are not used at runtime, we do not need such strict type checking
+[[tool.mypy.overrides]]
+module = "archive.management.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "archive.migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "archive.tests.*"
+ignore_errors = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["BFD9000*"]

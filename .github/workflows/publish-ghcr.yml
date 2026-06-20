@@ -5,82 +5,59 @@ on:
   # Only run on v* semver tags (release publish)
   push:
     tags:
-      - 'v*' # type: line; Only semver tags (v*) publish image, not branches/other refs.
-    # If no version tag is present, the workflow is inert. # type: line; Ensures job only acts when a semver tag is present.
-
+      - "v*" # type: line; Only semver tags (v*) publish image, not branches/other refs.
+      # If no version tag is present, the workflow is inert. # type: line; Ensures job only acts when a semver tag is present.
 permissions:
   contents: read
   packages: write
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install Nix
-        uses: cachix/install-nix-action@v27
-
-      - name: Set up Nix Flake environment
-        run: nix develop --command true
-
-      - name: Run Django tests
+        uses: cachix/install-nix-action@v30
+      - name: Run All tests
         run: |
-          nix develop --command python bfd9000_web/manage.py test --verbosity=2
-
+          nix flake check --keep-going
   build-and-push:
     runs-on: ubuntu-latest
     needs: [test]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract Docker metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Only produce the exact version tag (e.g. "1.2.3" from tag "v1.2.3").
-          # The metadata-action defaults generate 3 tags (version, major.minor, and ref),
-          # causing 3 separate image assets per release. This restricts output to one.
           tags: |
             type=semver,pattern={{version}}
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./bfd9000_web
-          file: ./bfd9000_web/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+      - name: Build Docker Image with Nix
+        run: |
+          nix build .#dockerImage --builders ""
+          docker load < result
+      - name: Tag and Push Image to Registry
+        run: |
+          # Bind local build to remote metadata tag string
+          REMOTE_TAG="${{ steps.meta.outputs.tags }}"
+          echo "Pushing image upstream..."
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag edu.case.bfd9000:latest "$tag"
+            docker push "$tag"
+          done <<< "${{ steps.meta.outputs.tags }}"
