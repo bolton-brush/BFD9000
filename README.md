@@ -99,6 +99,13 @@ See full command help:
 
 `python bfd9000_web/manage.py help initialize`
 
+## Manual Login
+
+The application exposes a manual username/password login page present at
+`./login/local`, which is not linked to from anywhere by default. This is a maintenance
+login to be used for any non-Case ID users or the admin account, which gets created by
+running the bootstrap code above. To use, simply manually navigate to this page.
+
 ## Generating Security Keys
 
 When rotating keys, generate **two different values**:
@@ -153,6 +160,8 @@ be provided via the environment, a `.env` file, or via Docker Compose.
 | `THUMBNAIL_DEFAULT_QUALITY` | No             | Default thumbnail image quality (0-100).                                           | `75`                                          |
 | `THUMBNAIL_MIN_QUALITY`     | No             | Minimum allowed thumbnail quality (0-100).                                         | `40`                                          |
 | `CSRF_TRUSTED_ORIGINS`      | No             | Comma-separated list of trusted origins for Django's CSRF check (scheme required). | `https://example.com` or blank                |
+| `CAS_ENDPOINT`              | No             | The CAS login page to use for SSO                                                  | `https://login.case.edu/cas/` or blank        |
+| `PROXIED_URL`               | No             | The publically redirectable page stub for redirection from CAS (must be https)     | `https://localhost:4430` or blank             |
 
 **For subpath deployments**, you must set `DJANGO_FORCE_SCRIPT_NAME` to your public path
 prefix (e.g., `/bfd9000`) to ensure all static/media/API/navigation work behind a proxy

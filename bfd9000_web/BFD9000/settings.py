@@ -47,7 +47,9 @@ APP_VERSION = (
 if not DEBUG and "SECRET_KEY" not in os.environ:
     raise RuntimeError("SECRET_KEY must be set when DEBUG=False")
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,bfd9000"
+).split(",")
 
 
 # Application definition
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "django_cas_ng",
     # Local apps
     "archive",
 ]
@@ -77,6 +80,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_cas_ng.middleware.CASMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -235,6 +239,26 @@ SPECTACULAR_SETTINGS = {
 # Authentication
 LOGIN_REDIRECT_URL = "archive:index"  # Named route, prefix-safe
 LOGIN_URL = "login"
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "django_cas_ng.backends.CASBackend",
+)
+
+CAS_SERVER_URL = os.environ.get("CAS_ENDPOINT", "https://login.case.edu/cas/")
+CAS_VERSION = "3"
+CAS_ROOT_PROXIED_AS = os.environ.get("PROXIED_URL", "https://localhost:4430")
+CAS_REDIRECT_URL = LOGIN_REDIRECT_URL
+CAS_CREATE_USER = True
+CAS_CREATE_USER_WITH_LOG_IN = True
+CAS_IGNORE_REFERER = True
+
+# Proxy settings for caddy
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = os.environ.get(
