@@ -54,6 +54,18 @@ services:
       # - BFD9020_BASE_URL=https://wingate.case.edu/bfd9020
 
       - SCANNER_API_BASE=http://127.0.0.1:9010
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+      - "4430:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - bfd9000
   bfd9020:
     image: ghcr.io/open-ortho/edu.case.bfd9020:local
     container_name: bfd9020
@@ -74,3 +86,5 @@ services:
 volumes:
   media_volume:
   postgres_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,7 @@
+{
+    local_certs
+}
+
+localhost {
+    reverse_proxy bfd9000:9000
+}

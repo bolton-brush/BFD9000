@@ -16,12 +16,13 @@ Including another URLconf
 
 """
 
+import django_cas_ng.views
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -46,15 +47,42 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     return redirect("login")
 
 
+def login_view(request: HttpRequest) -> HttpResponse:
+    """Simply shows the basic login page
+
+    Args:
+        request: A generic HTTP Request
+
+    Returns:
+        The login page
+
+    """
+    next_url = request.GET.get("next", "")
+    return render(request, "archive/login.html", {"next": next_url})
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("login/", login_view, name="login"),
     path(
-        "login/",
-        auth_views.LoginView.as_view(template_name="archive/login.html"),
-        name="login",
+        "login/local/",
+        auth_views.LoginView.as_view(template_name="archive/login_local.html"),
+        name="login_local",
     ),
     path("logout/", logout_view, name="logout"),
     path("", include("archive.urls")),
+    # CAS support
+    path("cas/login", django_cas_ng.views.LoginView.as_view(), name="cas_ng_login"),
+    path(
+        "cas/logout",
+        django_cas_ng.views.LogoutView.as_view(),
+        name="cas_ng_logout",
+    ),
+    path(
+        "cas/callback",
+        django_cas_ng.views.CallbackView.as_view(),
+        name="cas_ng_proxy_callback",
+    ),
     # OpenAPI Schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Swagger UI
