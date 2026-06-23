@@ -1,8 +1,11 @@
 name: Run All Tests
 on:
-  # Only run when a review is requested on a PR (not on push, open, etc)
   pull_request:
-    types: [review_requested]
+    types:
+      - opened
+      - ready_for_review
+      - review_requested
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
