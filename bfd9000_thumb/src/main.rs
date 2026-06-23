@@ -5,7 +5,6 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-// Expose the format options cleanly to the terminal shell interface
 #[derive(ValueEnum, Clone, Copy, Debug, PartialEq)]
 pub enum OutputFormat {
     Png,
@@ -47,7 +46,6 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    // 1. Ingest input STL data
     let mut input_buffer = Vec::new();
     if let Some(path) = args.input {
         let mut file = File::open(path).expect("Failed to open specified input file");
@@ -59,7 +57,6 @@ fn main() {
             .expect("Failed to read from STDIN");
     }
 
-    // 2. Pass the selected format configuration down to our renderer module
     let output_bytes =
         match renderer::render_stl(&input_buffer, args.width, args.height, args.format) {
             Ok(bytes) => bytes,
@@ -69,7 +66,6 @@ fn main() {
             }
         };
 
-    // 3. Route matching binary payload to disk or STDOUT
     if let Some(path) = args.output {
         let mut file = File::create(path).expect("Failed to generate target output asset on disk");
         file.write_all(&output_bytes)

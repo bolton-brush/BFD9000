@@ -17,9 +17,6 @@ pub fn render_stl(
     height: u32,
     format: OutputFormat,
 ) -> Result<Vec<u8>, String> {
-    // [ Keep Steps 1 through 5 entirely identical to your previous code implementation ]
-    // (Parse mesh, init headless wgpu, layout textures, and run encoding pass pipelines...)
-
     let mesh = stl_io::read_stl(&mut io::Cursor::new(input_bytes))
         .map_err(|e| format!("Failed to parse STL layout: {}", e))?;
 
@@ -27,7 +24,7 @@ pub fn render_stl(
         return Err("The parsed STL model contains zero vertices.".to_string());
     }
 
-    // 2. Find the Absolute Bounding Box of the Mesh
+    // Find the Bounding Box of the Mesh
     let mut min_x = f32::INFINITY;
     let mut max_x = f32::NEG_INFINITY;
     let mut min_y = f32::INFINITY;
@@ -56,7 +53,6 @@ pub fn render_stl(
         }
     }
 
-    // 3. Calculate Center Points and Extents
     let center_x = (min_x + max_x) / 2.0;
     let center_y = (min_y + max_y) / 2.0;
     let center_z = (min_z + max_z) / 2.0;
@@ -68,14 +64,13 @@ pub fn render_stl(
     // Find the maximum dimension to normalize scale
     let max_dimension = size_x.max(size_y).max(size_z);
 
-    // We want the model to fill roughly 75% of the screen space (leaving a clean margin)
     let scale = if max_dimension > 0.0 {
         1.1 / max_dimension
     } else {
         1.0
     };
 
-    // 4. Transform Vertices: Translate to Center, then Scale Uniformly
+    // Transform mesh
     let mut vertex_data = Vec::new();
     for face in mesh.faces {
         let normal = [face.normal[0], face.normal[1], face.normal[2]];
@@ -241,7 +236,7 @@ pub fn render_stl(
 
     queue.submit(Some(encoder.finish()));
 
-    // 6. Map and Extract Raw Memory (Unpadding layout loops)
+    // Map and Extract Raw Memory (Unpadding layout loops)
     let buffer_slice = output_buffer.slice(..);
     let (tx, rx) = std::sync::mpsc::channel();
     buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
@@ -270,7 +265,7 @@ pub fn render_stl(
     }
     drop(data);
 
-    // 7. Route and serialize target image compression style mapping
+    // Route and serialize target image compression style mapping
     let mut output_bytes = Vec::new();
 
     let target_format = match format {
