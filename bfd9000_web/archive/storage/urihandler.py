@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, TypeVar, override
 from urllib.parse import urlparse
 
 from archive.storage.storage import FileTimeInfo, StorageBackend
-
-from result import as_result
+from result.result import as_result
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping, Sequence

@@ -158,7 +158,8 @@
             buildPhase = ''
               echo "Running Mypy type checks..."
               export PYTHONPATH=$(pwd)
-              mypy
+              export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
+              mypy --show-traceback --verbose
             '';
 
             installPhase = "mkdir $out";

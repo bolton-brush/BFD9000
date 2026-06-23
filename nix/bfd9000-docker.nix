@@ -10,6 +10,7 @@
   lib,
   vulkan-loader,
   mesa,
+  stdenv,
   ...
 }:
 dockerTools.buildLayeredImage {
@@ -51,7 +52,7 @@ dockerTools.buildLayeredImage {
         ]
       }"
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-      "VK_ICD_FILENAMES=${mesa}/share/vulkan/icd.d/lvp_icd.x86_64.json"
+      "VK_ICD_FILENAMES=${mesa}/share/vulkan/icd.d/lvp_icd.${stdenv.hostPlatform.linuxArch}.json"
     ];
 
     WorkingDir = "/share/bfd9000_web";

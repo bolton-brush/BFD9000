@@ -753,7 +753,7 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
             not obj.thumbnail
             or not obj.thumbnail.name
             or not obj.thumbnail.storage.exists(obj.thumbnail.name)
-        ):
+        ) and (obj.source_file):
             logger.warning(f"Thumbnail does not exist, regenerating for {obj.id}")
             name = obj.source_file.name or str(uuid.uuid4())
             thumb_bytes = generate_thumbnail_webp_bytes(
@@ -1152,7 +1152,7 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
 
             # Export the original, unmodified mesh directly to a Binary STL byte buffer.
             # This automatically drops heavy ASCII layout text inflation.
-            minimized_bytes = cast("bytes", mesh.export(file_type="stl"))  # pyright: ignore[reportCallIssue, reportUnknownMemberType]
+            minimized_bytes = cast("bytes", mesh.export(file_type="stl"))  # type: ignore # pyright: ignore[reportCallIssue, reportUnknownMemberType]
 
             new_filename = (
                 f"{getattr(value, 'name', str(uuid.uuid4())).rsplit('.', 1)[0]}.stl"

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import io
 import unittest
 from pathlib import Path
 from typing import override
@@ -293,10 +294,11 @@ class TestBoxStorageBackend(unittest.TestCase):  # noqa: PLR0904
         self.backend._session_registry[10] = _SessionEntry(
             self.mock_client, "dir", "file.dat", "file_id_999"
         )
-        self.mock_client.downloads.download_file.return_value = [b"chunk1", b"chunk2"]
+        fake_stream = io.BytesIO(b"chunk1chunk2")
+        self.mock_client.downloads.download_file.return_value = fake_stream
 
         chunks = list(self.backend._raw_read_stream(10))
-        self.assertEqual(chunks, [b"chunk1", b"chunk2"])
+        self.assertEqual(chunks, [b"chunk1chunk2"])
 
     def test_raw_read_stream_missing_handle_or_id_raises_key_error(self) -> None:
         with self.assertRaises(KeyError):

@@ -254,8 +254,7 @@ def generate_thumbnail_webp_bytes(
         bytes = generate_stl_thumbnail(mem_file)
         if not bytes:
             return None
-        img = Image.open(BytesIO(bytes))
-        return _render_thumbnail_from_raster(img)
+        return _render_thumbnail_from_raster(Image.open(BytesIO(bytes)))
 
     img: Image.Image
     try:
