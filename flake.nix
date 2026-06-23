@@ -8,7 +8,7 @@
     uv2nix.url = "github:pyproject-nix/uv2nix";
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
-    bfd9000_thumb.url = "path:./bfd9000_thumb";
+    bfd9000_thumb.url = ./bfd9000_thumb;
   };
 
   outputs =
@@ -92,6 +92,7 @@
                 podman-compose
                 inputs.bfd9000_thumb.packages.${system}.stl-thumb
                 gnumake
+                act
               ]
               ++ [
                 venvDev

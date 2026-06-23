@@ -28,11 +28,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "path": "./bfd9000_thumb",
+        "path": "bfd9000_thumb",
         "type": "path"
       },
       "original": {
-        "path": "./bfd9000_thumb",
+        "path": "bfd9000_thumb",
         "type": "path"
       },
       "parent": []
@@ -275,7 +275,10 @@
     },
     "pyproject-nix": {
       "inputs": {
-        "nixpkgs": ["pybuild", "nixpkgs"]
+        "nixpkgs": [
+          "pybuild",
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1778901413,
@@ -293,7 +296,10 @@
     },
     "pyproject-nix_2": {
       "inputs": {
-        "nixpkgs": ["uv2nix", "nixpkgs"]
+        "nixpkgs": [
+          "uv2nix",
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1776715674,
@@ -403,8 +409,14 @@
     },
     "uv2nix": {
       "inputs": {
-        "nixpkgs": ["pybuild", "nixpkgs"],
-        "pyproject-nix": ["pybuild", "pyproject-nix"]
+        "nixpkgs": [
+          "pybuild",
+          "nixpkgs"
+        ],
+        "pyproject-nix": [
+          "pybuild",
+          "pyproject-nix"
+        ]
       },
       "locked": {
         "lastModified": 1779411315,
