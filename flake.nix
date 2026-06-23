@@ -8,6 +8,7 @@
     uv2nix.url = "github:pyproject-nix/uv2nix";
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
+    bfd9000_thumb.url = "path:./bfd9000_thumb";
   };
 
   outputs =
@@ -38,6 +39,7 @@
         deps = with pkgs; [
           file
           sqlite
+          inputs.bfd9000_thumb.packages.${system}.stl-thumb
         ];
         bfd9000-app = pkgs.callPackage ./nix/bfd9000-app.nix { pythonEnv = venv; };
         dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix {
@@ -65,7 +67,10 @@
             shfmt.enable = true;
             nixfmt.enable = true;
           };
-          settings.formatter.shellcheck.excludes = [ ".envrc" ];
+          settings.formatter.shellcheck.excludes = [
+            ".envrc"
+            "bfd9000_thumb/.envrc"
+          ];
         };
       in
       {
@@ -85,6 +90,7 @@
                 basedpyright
                 podman
                 podman-compose
+                inputs.bfd9000_thumb.packages.${system}.stl-thumb
                 gnumake
               ]
               ++ [
@@ -126,6 +132,23 @@
 
             installPhase = "mkdir $out";
           };
+          basedpyright-types = pkgs.stdenvNoCC.mkDerivation {
+            name = "basedpyright-types";
+            src = ./bfd9000_web;
+
+            nativeBuildInputs = [
+              venvDev
+              pkgs.basedpyright
+            ];
+
+            buildPhase = ''
+              echo "Running Basedpyright type checks..."
+              ln -sfn ${venvDev} ./.venv
+              basedpyright
+            '';
+
+            installPhase = "mkdir $out";
+          };
           mypy-types = pkgs.stdenvNoCC.mkDerivation {
             name = "mypy-types";
             src = ./bfd9000_web;
@@ -150,7 +173,7 @@
               echo "Running Django tests..."
               export PYTHONPATH=$(pwd)
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
-              python manage.py test --verbosity=2 archive.tests
+              python manage.py test --verbosity=2 archive.tests archive.tests.storage
             '';
 
             installPhase = "mkdir $out";
@@ -160,11 +183,17 @@
           load-podman = {
             type = "app";
             program = "${load-podman}/bin/load-podman";
+            meta = {
+              description = "Load local Podman container images for BFD9000 development";
+            };
           };
 
           dbeaver = {
             type = "app";
             program = "${pkgs.dbeaver-bin}/bin/dbeaver";
+            meta = {
+              description = "DBeaver SQL Client for database administration";
+            };
           };
         };
       }

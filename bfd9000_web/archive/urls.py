@@ -6,6 +6,8 @@ including nested routes for hierarchical resources
 (e.g., subjects -> encounters -> records).
 """
 
+from __future__ import annotations
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
@@ -77,6 +79,8 @@ urlpatterns = [
     path("records/<str:record_id>/", views.record_detail, name="record_detail"),
     path("physical-records/", views.physical_records, name="physical_records"),
     path("api/scan/tiff-preview/", views.scan_tiff_preview, name="scan_tiff_preview"),
+    # path("box/oauth/start/", views.box_oauth_start, name="box_oauth_start"),
+    # path("box/oauth/callback/", views.box_oauth_callback, name="box_oauth_callback"),
     # API routes
     path("api/", include(router.urls)),
     path("api/", include(subjects_router.urls)),

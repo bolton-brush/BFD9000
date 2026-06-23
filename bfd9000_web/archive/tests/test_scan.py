@@ -2,27 +2,31 @@
 # pyright: reportUninitializedInstanceVariable=false
 # ruff: noqa: S106
 
+from __future__ import annotations
+
 import io
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, override
 from unittest.mock import patch
 
-from django.contrib.auth.models import User
+from BFD9000.conf import AuthUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from PIL import Image
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class ScanTiffPreviewTests(TestCase):
     """Validate TIFF-to-PNG preview conversion behavior."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
 
     @override
     def setUp(self) -> None:
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="scanuser", password="testpassword"
         )
         self.client.force_login(self.user)

@@ -1,5 +1,7 @@
 [dependency-groups]
 dev = [
+  "box-sdk-gen>=1.17.0",
+  "cachetools>=7.1.4",
   "cryptography>=44.0,<45.0",
   "django>=6.0,<7.0",
   "django-cas-ng>=5.1.1",
@@ -8,9 +10,11 @@ dev = [
   "django-stubs>=6.0,<7.0",
   "djangorestframework>=3.14,<4.0",
   "djangorestframework-stubs>=3.14,<4.0",
+  "dotenv>=0.9.9",
   "drf-nested-routers>=0.93,<1.0",
   "drf-spectacular>=0.27,<1.0",
   "gunicorn>=21.0,<22.0",
+  "mime-enum>=0.0.3",
   "mypy>=1.20",
   "openpyxl>=3.1,<4.0",
   "pillow>=10.0,<11.0",
@@ -19,6 +23,8 @@ dev = [
   "pytest>=8.0,<10.0",
   "pytest-django>=4.10,<5.0",
   "python-magic>=0.4,<1.0",
+  "result>=0.17.0",
+  "trimesh>=4.12.2",
   "whitenoise>=6.6,<7.0"
 ]
 
@@ -29,6 +35,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+  "box-sdk-gen>=1.17.0",
+  "cachetools>=7.1.4",
   "cryptography>=44.0,<45.0",
   "django>=6.0,<7.0",
   "django-cas-ng>=5.1.1",
@@ -36,16 +44,42 @@ dependencies = [
   "django-filter>=25.0,<26.0",
   "django-stubs>=6.0,<7.0",
   "djangorestframework>=3.14,<4.0",
+  "dotenv>=0.9.9",
   "drf-nested-routers>=0.93,<1.0",
   "drf-spectacular>=0.27,<1.0",
   "gunicorn>=21.0,<22.0",
+  "mime-enum>=0.0.3",
   "openpyxl>=3.1,<4.0",
   "pillow>=10.0,<11.0",
   "psycopg2-binary>=2.9,<3.0",
   "pydicom>=3.0,<4.0",
   "python-magic>=0.4,<1.0",
+  "result>=0.17.0",
+  "trimesh>=4.12.2",
   "whitenoise>=6.6,<7.0"
 ]
+
+[tool.basedpyright]
+extraPaths = ["."]
+useLibraryCodeForTypes = true
+reportMissingTypeStubs = "none"
+ignore = [
+  "typings",
+  "nix/store",
+  ".direnv",
+  "**/migrations",
+  "**/tests",
+  "**/management/commands",
+  "**/management/importers"
+]
+exclude = [
+  "**/node_modules",
+  "**/__pycache__",
+  "**/.venv",
+  "**/.*"
+]
+venvPath = "."
+venv = ".venv"
 
 [tool.django-stubs]
 django_settings_module = "BFD9000.settings"

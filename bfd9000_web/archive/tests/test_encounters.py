@@ -2,9 +2,12 @@
 # pyright: reportUninitializedInstanceVariable=false, reportUnknownMemberType=false, reportAttributeAccessIssue=false, reportAny=false
 # ruff: noqa: S106
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
-from django.contrib.auth.models import Permission, User
+from BFD9000.conf import AuthUser
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
@@ -19,14 +22,14 @@ class EncounterTests(CleanupAPITestCase):
     """Validate encounter CRUD and derived fields."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         subject: Subject
         procedure: Coding
 
     @override
     def setUp(self) -> None:
         # Create user for authentication
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="testuser", password="testpassword"
         )
 
@@ -328,7 +331,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         encounter_id = create_response.data["id"]
 
-        superuser = User.objects.create_superuser(
+        superuser = AuthUser.objects.create_superuser(
             username="admin",
             password="adminpass",
             email="admin@example.com",
@@ -341,7 +344,7 @@ class EncounterTests(CleanupAPITestCase):
 
     def test_regular_user_without_encounter_perms_cannot_create_encounter(self) -> None:
         """Regular authenticated user should not create encounter."""
-        regular_user = User.objects.create_user(
+        regular_user = AuthUser.objects.create_user(
             username="regular", password="testpassword"
         )
         self.client.force_authenticate(user=regular_user)

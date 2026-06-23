@@ -17,11 +17,17 @@ environment across development and deployment.
 
 ## Running the Django Application
 
-1. Make sure to apply any database migrations:
+1. Make sure to apply any database migrations and import data into the database:
 
    ```bash
    cd bfd9000_web
    python manage.py migrate
+
+   # import data into database
+   cd docs/collections_data
+   python ../../manage.py import_subjects bolton
+   python ../../manage.py import_valuesets
+   cd ../../
    ```
 
 1. ONLY IF YOU ARE DEVELOPING THE FRONTEND, install DaisyUI and run tailwindcss in a
@@ -77,6 +83,12 @@ Useful test options:
 **Note**: Tests automatically clean up uploaded media files. Test images are stored in a
 temporary directory that is deleted after tests complete, so they won't clutter your
 `media/uploads/` directory.
+
+## Running additional code checks
+
+The checks outlined within the code cleanliness section of the main `README.md` also
+apply here, be sure to check any of those warnings from `mypy`, `ruff`, or
+`basedpyright` before completing your PR.
 
 ## Running additional code checks
 

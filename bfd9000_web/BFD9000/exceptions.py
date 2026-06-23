@@ -5,6 +5,8 @@ across the API, ensuring a consistent JSON structure
 for both DRF and unhandled exceptions.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 

@@ -1,6 +1,7 @@
 {
   stdenvNoCC,
   pythonEnv,
+  file,
   ...
 }:
 stdenvNoCC.mkDerivation {
@@ -12,6 +13,7 @@ stdenvNoCC.mkDerivation {
 
   buildPhase = ''
     echo "Collecting static files..."
+    export "LD_LIBRARY_PATH=${file}/lib"
     python manage.py collectstatic --noinput --ignore "input.css"
   '';
 

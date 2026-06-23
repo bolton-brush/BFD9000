@@ -2,10 +2,13 @@
 # pyright: reportUnknownMemberType=false, reportUninitializedInstanceVariable=false, reportAny=false
 # ruff: noqa: S106
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, override
 
-from django.contrib.auth.models import Group, Permission, User
+from BFD9000.conf import AuthUser
+from django.contrib.auth.models import Group, Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
@@ -83,7 +86,7 @@ class RolePermissionTests(CleanupAPITestCase):
         self,
     ) -> None:
         """Ensure that users cannot modify encounters but are able to make records"""
-        user = User.objects.create_user(username="regular", password="testpassword")
+        user = AuthUser.objects.create_user(username="regular", password="testpassword")
         self.client.force_authenticate(user=user)
 
         subject_response = self.client.post(
@@ -130,7 +133,7 @@ class RolePermissionTests(CleanupAPITestCase):
 
     def test_curator_can_manage_subject_encounter_but_not_delete_anything(self) -> None:
         """Ensures curators can manage encounters but not delete"""
-        user = User.objects.create_user(username="curator", password="testpassword")
+        user = AuthUser.objects.create_user(username="curator", password="testpassword")
         curator_group, _ = Group.objects.get_or_create(name="Curator")
         curator_group.permissions.add(
             Permission.objects.get(codename="add_subject"),

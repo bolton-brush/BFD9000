@@ -6,32 +6,42 @@ easily rendered into JSON, XML, or other content types.
 It includes specialized logic for file uploads and validation.
 """
 
+from __future__ import annotations
+
+import contextlib
 import datetime
 import json
 import logging
-from collections.abc import Iterable, Sequence
-from functools import reduce
+import uuid
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast, final, override
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    NotRequired,
+    TypedDict,
+    cast,
+    final,
+    override,
+)
 
 import magic
-from django.contrib.auth.models import User
+import trimesh
+from BFD9000.conf import AuthUser
+from BFD9000.settings import StorageURIs
 from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
-from django.db.models.fields.files import FieldFile
 from rest_framework import serializers
 
-from archive.management.importers.base import Stringable
-
 from .constants import (
-    EXT_TO_MIMES,
+    RASTER_MIMES,
     RECORD_TYPE_MODALITY_MAP,
+    SCAN_MIMES,
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
     SYSTEM_MODALITY,
     SYSTEM_RECORD_TYPE,
 )
-from .media_utils import TransformOp, generate_thumbnail_jpeg_bytes, parse_transform_ops
+from .media_utils import TransformOp, generate_thumbnail_webp_bytes
 from .models import (
     Address,
     ArchiveLocation,
@@ -51,8 +61,14 @@ from .models import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Sequence
+
     from django.db.models import QuerySet
     from rest_framework.request import Request
+
+    from archive.storage.django import ByteFile
+
+    from .management.importers.base import Stringable
 
 
 logger = logging.getLogger(__name__)
@@ -417,7 +433,7 @@ class ImagingStudySerializer(serializers.ModelSerializer[ImagingStudy]):
 
         return SeriesSerializer(qs, many=True, context=self.context).data  # type: ignore # pyright: ignore[reportUnknownMemberType, reportReturnType, reportUnknownVariableType]
 
-    def _latest_operator(self, obj: ImagingStudy) -> User | None:  # noqa: PLR6301
+    def _latest_operator(self, obj: ImagingStudy) -> AuthUser | None:  # noqa: PLR6301
         # Use prefetched _operator_records if available (set by ImagingStudyViewSet)
         # to avoid N+1 queries when serializing lists.
         all_records: list[DigitalRecord] = []
@@ -586,7 +602,7 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
         read_only=True, allow_null=True
     )
     device = DeviceSerializer(read_only=True)
-    operator = serializers.StringRelatedField[User](read_only=True)
+    operator = serializers.StringRelatedField[AuthUser](read_only=True)
 
     encounter_id = serializers.IntegerField(
         source="series.imaging_study.encounter.id", read_only=True
@@ -704,7 +720,7 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
         """
         if getattr(obj, "source_file", None):
             try:
-                return obj.source_file.size
+                return obj.display_size
             except Exception:
                 return None
         return None
@@ -733,12 +749,37 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
             The thumbnail url for this object, if found
 
         """
-        if getattr(obj, "thumbnail", None):
-            try:
-                return obj.thumbnail.url
-            except Exception:
+        if (
+            not obj.thumbnail
+            or not obj.thumbnail.name
+            or not obj.thumbnail.storage.exists(obj.thumbnail.name)
+        ):
+            logger.warning(f"Thumbnail does not exist, regenerating for {obj.id}")
+            name = obj.source_file.name or str(uuid.uuid4())
+            thumb_bytes = generate_thumbnail_webp_bytes(
+                obj.source_file,
+                name,
+                transform_ops=DigitalRecordUploadSerializer().validate_image_transform_ops(
+                    obj.image_transform_ops  # pyright: ignore[reportAny]
+                ),
+            )
+            if not thumb_bytes:
+                logger.warning("No thumbnail made")
                 return None
-        return None
+
+            with transaction.atomic():
+                refreshed_obj = DigitalRecord.objects.select_for_update().get(id=obj.id)
+                logger.info(f"Regeneration successful for {refreshed_obj.id}")
+                refreshed_obj.thumbnail.save(  # pyright: ignore[reportUnknownMemberType]
+                    f"{name}.jpg", ContentFile(thumb_bytes), save=True
+                )
+                obj.thumbnail = refreshed_obj.thumbnail
+
+        try:
+            return obj.thumbnail.url
+        except Exception as e:
+            logger.warning(f"Thumbnail fetch failed with {e}")
+            return None
 
     def get_image_url(self, obj: DigitalRecord) -> str | None:  # noqa: PLR6301
         """Return the image url for the digital record.
@@ -756,6 +797,123 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
             except Exception:
                 return None
         return None
+
+
+class DigitalRecordUploadValidatedDict(TypedDict):
+    """The Validated Type of the input dictionary
+
+    for creating a DigitalRecord
+
+    """
+
+    # Required Fields (No required=False, no allow_null=True)
+    file: ByteFile
+    record_type: Coding
+
+    # Optional Fields (marked with required=False or allow_null=True)
+    thumbnail_preview: NotRequired[ByteFile]
+    modality: NotRequired[Coding | None]
+    acquisition_date: NotRequired[datetime.date]
+    patient_orientation: NotRequired[
+        list[str]
+    ]  # Output of validate_patient_orientation
+    image_transform_ops: NotRequired[
+        list[TransformOp]
+    ]  # Output of validate_image_transform_ops
+    encounter: NotRequired[Encounter]
+    physical_record: NotRequired[PhysicalRecord | None]
+    device_serial: NotRequired[str]
+    device_manufacturer: NotRequired[str]
+    device_model: NotRequired[str]
+
+
+@dataclass
+class DigitalRecordUploadParsedData:
+    """Validated and reconstructed input data"""
+
+    file: ByteFile
+    rt_coding: Coding
+    mod_coding: Coding
+    thumbnail_preview: ByteFile | None
+    acquisition_date: datetime.date | None
+    patient_orientation: list[str] | None
+    image_transform_ops: list[TransformOp]
+    encounter: Encounter
+    collection: Collection
+    physical_record_input: PhysicalRecord | None
+    device_serial: str
+    device_manufacturer: str
+    device_model: str
+
+    @classmethod
+    def from_validated_dict(
+        cls,
+        validated_data: DigitalRecordUploadValidatedDict,
+        context_encounter: Callable[[], Encounter | None],
+        infer_mod_coding: Callable[[Coding], Coding],
+    ) -> DigitalRecordUploadParsedData:
+        """Creates a validated Upload object from input data
+
+        Returns:
+            A validated upload object
+
+        Raises:
+            ValidationError: If encounter or collection does not exist
+
+        """
+        file = validated_data["file"]
+        rt_coding = validated_data["record_type"]
+
+        thumbnail_preview = validated_data.pop("thumbnail_preview", None)
+        mod_coding = validated_data.pop("modality", None) or infer_mod_coding(rt_coding)
+        acquisition_date = validated_data.pop("acquisition_date", None)
+        patient_orientation = validated_data.pop(
+            "patient_orientation",
+            ["A", "F"] if rt_coding.code == LATERAL_RECORD_TYPE_CODE else None,
+        )
+        image_transform_ops = validated_data.pop("image_transform_ops", [])
+        physical_record_input = validated_data.pop("physical_record", None)
+        encounter = validated_data.pop(
+            "encounter",
+            physical_record_input.encounter
+            if physical_record_input
+            else context_encounter(),
+        )
+        if encounter is None:
+            raise serializers.ValidationError(
+                {
+                    "encounter": "This field is required "
+                    + "(either in URL, body, or via physical_record)."
+                }
+            )
+        device_serial = validated_data.pop("device_serial", "").strip()
+        device_manufacturer = validated_data.pop("device_manufacturer", "").strip()
+        device_model = validated_data.pop("device_model", "").strip()
+        subject = encounter.subject
+        collection = subject.collection
+        if collection is None:
+            raise serializers.ValidationError(
+                {
+                    "collection": f"Subject {subject.id} must be assigned "
+                    + "to a collection before uploading records."
+                }
+            )
+
+        return cls(
+            file=file,
+            rt_coding=rt_coding,
+            mod_coding=mod_coding,
+            thumbnail_preview=thumbnail_preview,
+            acquisition_date=acquisition_date,
+            patient_orientation=patient_orientation,
+            image_transform_ops=image_transform_ops,
+            encounter=encounter,
+            collection=collection,
+            physical_record_input=physical_record_input,
+            device_serial=device_serial,
+            device_manufacturer=device_manufacturer,
+            device_model=device_model,
+        )
 
 
 @final
@@ -943,8 +1101,8 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
         return dict(DigitalRecordSerializer(instance, context=self.context).data)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
 
     def validate_file(  # noqa: PLR6301
-        self, value: UploadedFile | FieldFile
-    ) -> UploadedFile | FieldFile:
+        self, value: ByteFile
+    ) -> ByteFile:
         """Validates a file given an unknown input
 
         Args:
@@ -958,46 +1116,123 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
 
         """
         if (value.size or 0) > 100 * 1024 * 1024:
+            logger.warning("Uploaded file was too large")
             raise serializers.ValidationError("File too large (max 100MB)")
 
-        initial_pos = value.tell()  # pyright: ignore[reportAny]
+        initial_pos: int = value.tell()  # pyright: ignore[reportAny]
         value.seek(0)  # pyright: ignore[reportAny]
 
-        # Validate file extension
-        ext = (value.name or "").split(".")[-1].lower()
-        if ext not in reduce(lambda a, b: a + b, EXT_TO_MIMES.keys()):
+        try:
+            header_sample: bytes = value.read(2048)  # pyright: ignore[reportAny]
+            mime_type = magic.from_buffer(header_sample, mime=True)
+            value.seek(0)  # pyright: ignore[reportAny]
+        except Exception as e:
+            logger.error("Failed to validate file from MIME")
+            raise e
+        finally:
+            with contextlib.suppress(Exception):
+                value.seek(initial_pos)  # pyright: ignore[reportAny]
+        if mime_type in RASTER_MIMES:
+            return value
+
+        if mime_type not in SCAN_MIMES:
+            logger.error(f"Unsupported file format (Detected: {mime_type})")
             raise serializers.ValidationError(
-                "Only PNG, TIFF, and STL files are allowed"
+                f"Unsupported file format (Detected: {mime_type})"
             )
 
-        # Validate MIME type if python-magic is available
-        if magic:
-            try:
-                mime = magic.from_buffer(value.read(2048), mime=True)  # pyright: ignore[reportAny]
+        try:
+            # Load the mesh using trimesh (executes structural verification checks)
+            mesh = trimesh.load(value, file_type="stl")  # pyright: ignore[reportUnknownMemberType]
 
-                valid = reduce(
-                    lambda a, b: a or b,
-                    (mime in m for e, m in EXT_TO_MIMES.items() if ext in e),
+            if mesh.is_empty:
+                raise serializers.ValidationError(
+                    "The 3D asset contains no valid geometry."
                 )
 
-                if not valid:
-                    raise serializers.ValidationError(
-                        f"Invalid MIME type for {ext}: {mime}"
-                    )
+            # Export the original, unmodified mesh directly to a Binary STL byte buffer.
+            # This automatically drops heavy ASCII layout text inflation.
+            minimized_bytes = cast("bytes", mesh.export(file_type="stl"))  # pyright: ignore[reportCallIssue, reportUnknownMemberType]
 
-            except Exception as e:
-                if isinstance(e, serializers.ValidationError):
-                    raise e
-            finally:
+            new_filename = (
+                f"{getattr(value, 'name', str(uuid.uuid4())).rsplit('.', 1)[0]}.stl"
+            )
+
+            return ContentFile(minimized_bytes, name=new_filename)
+
+        except Exception as mesh_err:
+            logger.error("3D asset not valid")
+            if isinstance(mesh_err, serializers.ValidationError):
+                raise mesh_err
+            raise serializers.ValidationError(
+                "Structural validation failed. Asset does not contain valid 3D data."
+            ) from mesh_err
+        finally:
+            with contextlib.suppress(Exception):
                 value.seek(initial_pos)  # pyright: ignore[reportAny]
-        else:
-            value.seek(initial_pos)  # pyright: ignore[reportAny]
-        return value
+
+    @staticmethod
+    def _resolve_physical_record(
+        payload: DigitalRecordUploadParsedData, device: Device | None
+    ) -> PhysicalRecord:
+        """Resolve a physical record for a digital record
+
+        Args:
+            payload: The input arguments for the construction of the DR
+            device: The device associated with the record
+
+        Returns:
+            The resolved PR
+
+        Raises:
+            ValidationError: if multiple PRs exist for an encounter
+
+        """
+        if payload.physical_record_input is not None:
+            physical_record = payload.physical_record_input
+            # If the user corrected the record_type in the UI,
+            # propagate the correction to the PhysicalRecord
+            # so the physical archive stays accurate.
+            if physical_record.record_type != payload.rt_coding:
+                physical_record.record_type = payload.rt_coding
+                physical_record.save(update_fields=["record_type"])
+            return physical_record
+
+        pr_matches = list(
+            PhysicalRecord.objects.filter(
+                record_type=payload.rt_coding,
+                encounter=payload.encounter,
+            )
+        )
+        if len(pr_matches) > 1:
+            raise serializers.ValidationError(
+                {
+                    "physical_record": (
+                        "Multiple physical records exist for this "
+                        + "encounter and record type. "
+                        + "Provide 'physical_record' explicitly "
+                        + "to identify which one to link."
+                    )
+                }
+            )
+
+        return (
+            pr_matches[0]
+            if pr_matches
+            else PhysicalRecord.objects.create(
+                record_type=payload.rt_coding,
+                encounter=payload.encounter,
+                operator="Unknown",
+                device=device,
+            )
+        )
 
     # TODO: refactor this, it's way too complex and prone to erroring
     @override
-    def create(self, validated_data: dict[str, Any]) -> DigitalRecord:  # pyright: ignore[reportExplicitAny]  # noqa: C901, PLR0912, PLR0914, PLR0915
+    def create(self, validated_data: DigitalRecordUploadValidatedDict) -> DigitalRecord:
         """Create a new DigitalRecord instance.
+
+        Will raise a ValidationError if any input data is invalid
 
         Args:
             validated_data: A validated dictionary representing a DigitalRecord
@@ -1005,204 +1240,114 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
         Returns:
             A DigitalRecord object constructed from the data
 
-        Raises:
-            ValidationError:
-                The encounter field was not found or
-                The Physical Record was not found or is invalid
-
         """
-        file_obj = cast("FieldFile", validated_data.pop("file"))
-        thumbnail_preview = cast(
-            "FieldFile | None", validated_data.pop("thumbnail_preview", None)
+        input: DigitalRecordUploadParsedData = (
+            DigitalRecordUploadParsedData.from_validated_dict(
+                validated_data,
+                lambda: self.context.get("encounter"),
+                self._infer_modality,
+            )
         )
-
-        rt_coding = cast("Coding", validated_data.pop("record_type"))
-        mod_coding = cast("Coding | None", validated_data.pop("modality", None))
-
-        acquisition_date = cast(
-            "datetime.date | None", validated_data.pop("acquisition_date", None)
-        )
-        patient_orientation = cast(
-            "list[str] | None", validated_data.pop("patient_orientation", None)
-        )
-        transform_ops = cast(
-            "list[TransformOp]", validated_data.pop("image_transform_ops", [])
-        )
-
-        device_serial = cast("str", validated_data.pop("device_serial", "")).strip()
-        device_manufacturer = cast(
-            "str", validated_data.pop("device_manufacturer", "")
-        ).strip()
-        device_model = cast("str", validated_data.pop("device_model", "")).strip()
-
-        encounter = cast("Encounter | None", validated_data.pop("encounter", None))
-        physical_record_input = cast(
-            "PhysicalRecord | None", validated_data.pop("physical_record", None)
-        )
-
-        # If a physical_record was provided, derive encounter from it
-        if physical_record_input is not None:
-            encounter = physical_record_input.encounter
-        else:
-            if not encounter:
-                encounter = self.context.get("encounter")
-            if not encounter:
-                raise serializers.ValidationError(
-                    {
-                        "encounter": "This field is required "
-                        + "(either in URL, body, or via physical_record)."
-                    }
-                )
 
         request: Request | None = self.context.get("request")
         operator = None
         if request and getattr(request, "user", None) and request.user.is_authenticated:
             operator = request.user
 
-        if (
-            patient_orientation is None
-            and getattr(rt_coding, "code", None) == LATERAL_RECORD_TYPE_CODE
-        ):
-            patient_orientation = ["A", "F"]
+        file_uuid = str(uuid.uuid4())
+        ext = Path(input.file.name or "").suffix.lower()
+        target_filename = f"{file_uuid}{ext}"
+
+        thumb_bytes: bytes | None = None
+        try:
+            if input.thumbnail_preview is not None:
+                thumb_bytes = generate_thumbnail_webp_bytes(
+                    input.thumbnail_preview,
+                    input.thumbnail_preview.name or "",
+                    transform_ops=None,
+                )
+            else:
+                input.file.seek(0)  # pyright: ignore[reportAny]
+                thumb_bytes = generate_thumbnail_webp_bytes(
+                    input.file,
+                    target_filename,
+                    transform_ops=input.image_transform_ops,
+                )
+        except Exception:
+            logger.warning(
+                "Thumbnail generation failed for %s", target_filename, exc_info=True
+            )
 
         with transaction.atomic():
             # Resolve or auto-create Device by
             # (serial, manufacturer, model) when serial is provided
             device: Device | None = None
-            if device_serial:
+            if input.device_serial:
                 display_name = (
-                    " ".join(filter(None, [device_manufacturer, device_model]))
-                    or device_serial
+                    " ".join(
+                        filter(None, [input.device_manufacturer, input.device_model])
+                    )
+                    or input.device_serial
                 )
                 device, _ = Device.objects.get_or_create(
-                    serial_number=device_serial,
-                    manufacturer=device_manufacturer,
-                    model_number=device_model,
+                    serial_number=input.device_serial,
+                    manufacturer=input.device_manufacturer,
+                    model_number=input.device_model,
                     defaults={
                         "display_name": display_name,
                     },
                 )
 
-            subject = encounter.subject
-            collection = getattr(subject, "collection", None)
-            if not collection:
-                raise serializers.ValidationError(
-                    {
-                        "collection": f"Subject {subject.id} must be assigned "
-                        + "to a collection before uploading records."
-                    }
-                )
-
             study, _ = ImagingStudy.objects.get_or_create(
-                encounter=encounter, defaults={"collection": collection}
+                encounter=input.encounter, defaults={"collection": input.collection}
             )
-            if study.collection != collection:
-                study.collection = collection
+            if study.collection != input.collection:
+                study.collection = input.collection
                 study.save(update_fields=["collection"])
-
-            if mod_coding is None:
-                mod_coding = self._infer_modality(rt_coding)
 
             # Series is now identified only by modality+imaging_study
             series, _ = Series.objects.get_or_create(
                 imaging_study=study,
-                modality=mod_coding,
+                modality=input.mod_coding,
             )
 
             # PHYSICAL RECORD: Use explicitly provided one,
             # or get/create by (record_type, encounter)
-            if physical_record_input is not None:
-                physical_record = physical_record_input
-                # If the user corrected the record_type in the UI,
-                # propagate the correction to the PhysicalRecord
-                # so the physical archive stays accurate.
-                if physical_record.record_type != rt_coding:
-                    physical_record.record_type = rt_coding
-                    physical_record.save(update_fields=["record_type"])
-            else:
-                pr_matches = list(
-                    PhysicalRecord.objects.filter(
-                        record_type=rt_coding,
-                        encounter=encounter,
-                    )
-                )
-                if len(pr_matches) > 1:
-                    raise serializers.ValidationError(
-                        {
-                            "physical_record": (
-                                "Multiple physical records exist for this "
-                                + "encounter and record type. "
-                                + "Provide 'physical_record' explicitly "
-                                + "to identify which one to link."
-                            )
-                        }
-                    )
-                physical_record = (
-                    pr_matches[0]
-                    if pr_matches
-                    else PhysicalRecord.objects.create(
-                        record_type=rt_coding,
-                        encounter=encounter,
-                        operator="Unknown",
-                        device=device,
-                    )
-                )
+            physical_record = self._resolve_physical_record(input, device)
 
             digital_record = DigitalRecord(
                 series=series,
                 physical_record=physical_record,
-                record_type=rt_coding,
+                record_type=input.rt_coding,
                 acquisition_datetime=(
                     datetime.datetime.combine(
-                        acquisition_date,
+                        input.acquisition_date,
                         datetime.time.min,
                         tzinfo=datetime.UTC,
                     )
-                    if acquisition_date
+                    if input.acquisition_date
                     else None
                 ),
                 operator=operator,
-                patient_orientation=_encode_patient_orientation(patient_orientation),
-                image_transform_ops=transform_ops,
+                patient_orientation=_encode_patient_orientation(
+                    input.patient_orientation
+                ),
+                image_transform_ops=input.image_transform_ops,
                 device=device,
             )
-            digital_record.full_clean()
-            digital_record.save()
+            # Bind files natively using Django's clean backend stream handler
+            input.file.seek(0)  # pyright: ignore[reportAny]
+            digital_record.source_file.save(  # pyright: ignore[reportUnknownMemberType]
+                f"{StorageURIs.BOX}://{target_filename}", input.file, save=False
+            )
 
-            ext = Path(file_obj.name or "").suffix.lower()
-            filename = f"{getattr(digital_record, 'pk', digital_record.id)}{ext}"
-            digital_record.source_file.save(filename, file_obj, save=False)  # pyright: ignore[reportUnknownMemberType]
-
-            # TODO: When refactoring this function, also refactor this try/except
-            try:  # noqa: PLW0717
-                thumb_bytes = None
-                if thumbnail_preview is not None:
-                    thumb_bytes = generate_thumbnail_jpeg_bytes(
-                        thumbnail_preview,
-                        thumbnail_preview.name or "",
-                        transform_ops=None,
-                    )
-                else:
-                    with digital_record.source_file.open("rb") as file_stream:
-                        thumb_bytes = generate_thumbnail_jpeg_bytes(
-                            file_stream,
-                            digital_record.source_file.name or "",
-                            transform_ops=parse_transform_ops(transform_ops),
-                        )
-
-                if thumb_bytes:
-                    thumb_content = ContentFile(thumb_bytes)
-                    thumb_name = (
-                        f"{getattr(digital_record, 'pk', digital_record.id)}.jpg"
-                    )
-                    digital_record.thumbnail.save(thumb_name, thumb_content, save=False)  # pyright: ignore[reportUnknownMemberType]
-            except Exception:
-                logger.warning(
-                    "Thumbnail generation failed for digital_record %s",
-                    digital_record.pk,
-                    exc_info=True,
+            if thumb_bytes:
+                digital_record.thumbnail.save(  # pyright: ignore[reportUnknownMemberType]
+                    f"{file_uuid}.jpg", ContentFile(thumb_bytes), save=False
                 )
 
+            # Run validators and save the record to the database
+            digital_record.full_clean()
             digital_record.save()
 
             return digital_record

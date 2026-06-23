@@ -5,12 +5,16 @@ so that API clients use short readable keys (e.g. ``subject``, ``encounter``)
 instead of full ORM paths (e.g. ``series__imaging_study__encounter__subject``).
 """
 
-from collections.abc import Sequence
-from typing import final
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, final
 
 import django_filters
 
 from .models import DigitalRecord
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 @final

@@ -1,5 +1,9 @@
 """Shared code systems and identifier system URLs."""
 
+from __future__ import annotations
+
+from mime_enum import MimeType
+
 SYSTEM_RECORD_TYPE = "https://orthodontics.case.edu/fhir/identifier-system/record-type"
 SYSTEM_ORIENTATION = "http://snomed.info/sct"
 SYSTEM_MODALITY = "http://dicom.nema.org/resources/ontology/DCM"
@@ -53,7 +57,7 @@ RECORD_TYPE_MODALITY_MAP = {
 VALUESET_EXPAND_URLS = {
     # FHIR $expand endpoints used by import_valuesets.
     # Update when valueset locations move or new valuesets are added.
-    "record_types": "http://terminology.open-ortho.org/fhir/cwru-ortho-record-types/$expand",
+    "record_types": "https://terminology.open-ortho.org/fhir/sid/cwru/ValueSet/ortho-record-types/$expand",
 }
 
 BFD9000_ROOT_UID = "1.3.6.1.4.1.61741.11.8"
@@ -61,12 +65,16 @@ STUDYINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.2"
 SERIESINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.3"
 SOPINSTANCEUID_ROOT = f"{BFD9000_ROOT_UID}.4"
 
-EXT_TO_MIMES: dict[tuple[str, ...], tuple[str, ...]] = {
-    ("png",): ("image/png",),
-    ("tif", "tiff"): ("image/tiff",),
-    ("stl",): (
-        "application/octet-stream",
-        "model/stl",
-        "text/plain",
-    ),
+RASTER_MIMES = {
+    MimeType.IMAGE_PNG,
+    MimeType.IMAGE_TIFF,
+    MimeType.IMAGE_JPEG,
+}
+
+SCAN_MIMES = {
+    MimeType.APPLICATION_OCTET_STREAM,
+    MimeType.APPLICATION_VND_MS_PKI_STL,
+    MimeType.MODEL_MESH,
+    MimeType.TEXT_PLAIN,
+    "model/stl",
 }

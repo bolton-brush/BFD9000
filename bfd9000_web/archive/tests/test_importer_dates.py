@@ -1,6 +1,8 @@
 """Tests for importer date parsing logic."""
 # pyright: reportUninitializedInstanceVariable=false, reportPrivateUsage=false
 
+from __future__ import annotations
+
 import io
 from datetime import date
 from typing import TYPE_CHECKING, override

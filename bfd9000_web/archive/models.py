@@ -11,9 +11,8 @@ import json
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, final
 
-from BFD9000.conf import settings
+from BFD9000.conf import AuthUser, settings
 from cryptography.fernet import Fernet, InvalidToken
-from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
 from django.db.models import BaseConstraint, Max, QuerySet
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
         RelatedManager,
     )
 
+import contextlib
 from typing import override
 
 from .constants import (
@@ -156,18 +156,18 @@ class TimestampedModel(models.Model):
     updated_at: models.DateTimeField[datetime, datetime] = models.DateTimeField(
         auto_now=True, help_text="Timestamp when this record was last updated"
     )
-    created_by: models.ForeignKey[User, User | None] = models.ForeignKey[
-        User, User | None
+    created_by: models.ForeignKey[AuthUser, AuthUser | None] = models.ForeignKey[
+        AuthUser, AuthUser | None
     ](
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="%(class)s_created",
         help_text="User who created this record",
     )
-    modified_by: models.ForeignKey[User, User | None] = models.ForeignKey(
-        User,
+    modified_by: models.ForeignKey[AuthUser, AuthUser | None] = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -511,14 +511,14 @@ class Subject(TimestampedModel):
     humanname_given = models.CharField[str, str | None](
         max_length=128, help_text="Given name", null=True, blank=True
     )
-    address = models.ForeignKey[Address | None](
+    address = models.ForeignKey[Address | None, Address | None](
         Address,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="Subject mailing or residence address",
     )
-    ethnicity = models.ForeignKey[Coding | None](
+    ethnicity = models.ForeignKey[Coding | None, Coding | None](
         Coding,
         on_delete=models.PROTECT,
         null=True,
@@ -526,7 +526,7 @@ class Subject(TimestampedModel):
         related_name="subjects_ethnicity",
         help_text="Optional ethnicity coding for subject demographics",
     )
-    skeletal_pattern = models.ForeignKey[Coding | None](
+    skeletal_pattern = models.ForeignKey[Coding | None, Coding | None](
         Coding,
         on_delete=models.PROTECT,
         null=True,
@@ -534,7 +534,7 @@ class Subject(TimestampedModel):
         related_name="subjects_skeletal_pattern",
         help_text="Optional skeletal pattern coding",
     )
-    palatal_cleft = models.ForeignKey[Coding | None](
+    palatal_cleft = models.ForeignKey[Coding | None, Coding | None](
         Coding,
         on_delete=models.PROTECT,
         null=True,
@@ -548,7 +548,7 @@ class Subject(TimestampedModel):
         related_name="subjects",
         help_text="External identifiers associated with this subject",
     )
-    collection = models.ForeignKey[Collection | None](
+    collection = models.ForeignKey[Collection | None, Collection | None](
         Collection,
         on_delete=models.PROTECT,
         null=True,
@@ -1288,8 +1288,8 @@ class DigitalRecord(TimestampedModel):
         help_text="When the physical record was scanned, "
         + "or when born-digital data was acquired",
     )
-    operator = models.ForeignKey[User, User | None](
-        User,
+    operator = models.ForeignKey[AuthUser, AuthUser | None](
+        AuthUser,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1297,11 +1297,16 @@ class DigitalRecord(TimestampedModel):
         help_text="System user who performed the scan or born-digital acquisition",
     )
     source_file = models.FileField(
-        upload_to="uploads/",
+        upload_to="",
+        storage=settings.GET_DJANGO_STORAGE,
         null=True,
         blank=True,
         help_text="Raw uploaded file (PNG/TIFF/STL). "
-        + "Transient — may be deleted after archival.",
+        + "If archived, will be updated to its relevant URI",
+    )
+    file_size = models.PositiveBigIntegerField[int | None, int | None](
+        null=True,
+        blank=True,
     )
     thumbnail = models.ImageField(
         upload_to="thumbnails/",
@@ -1424,6 +1429,9 @@ class DigitalRecord(TimestampedModel):
                         .aggregate(m=Max("sequence_number"))["m"]
                     )
                     self.sequence_number = (max_seq or 0) + 1
+        if self.source_file and (self.file_size is None or self._state.adding):
+            with contextlib.suppress(Exception):
+                self.file_size = self.source_file.size
         super().save(*args, **kwargs)
         self._assign_bolton_record_identifier()
 
@@ -1454,6 +1462,25 @@ class DigitalRecord(TimestampedModel):
             new_ident.use = "official"
             new_ident.save(update_fields=["use"])
         self.identifiers.add(new_ident)
+
+    @property
+    def display_size(self) -> int:
+        """Returns cached DB size, or fetches from storage backend as a fallback."""
+        if self.file_size is not None:
+            return self.file_size
+
+        # Fallback for legacy rows that don't have file_size populated yet
+        if self.source_file:
+            try:
+                self.file_size = self.source_file.size
+                # Save without triggering full save() hooks recursively
+                _ = DigitalRecord.objects.filter(pk=self.pk).update(
+                    file_size=self.file_size
+                )
+                return self.file_size
+            except Exception:
+                return 0
+        return 0
 
 
 @final
