@@ -28,6 +28,9 @@ environment across development and deployment.
    python ../../manage.py import_subjects bolton
    python ../../manage.py import_valuesets
    cd ../../
+
+   # or generate synthetic data to test with
+   python manage.py generate_synthetic_data
    ```
 
 1. ONLY IF YOU ARE DEVELOPING THE FRONTEND, install DaisyUI and run tailwindcss in a

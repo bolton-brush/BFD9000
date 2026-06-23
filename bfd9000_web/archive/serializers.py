@@ -1227,7 +1227,6 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
             )
         )
 
-    # TODO: refactor this, it's way too complex and prone to erroring
     @override
     def create(self, validated_data: DigitalRecordUploadValidatedDict) -> DigitalRecord:
         """Create a new DigitalRecord instance.
