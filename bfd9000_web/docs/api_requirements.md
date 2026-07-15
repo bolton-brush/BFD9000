@@ -554,8 +554,8 @@ The API follows a clear resource hierarchy:
 
 ### Image URLs
 
-- `image_url`, `thumbnail_url`, `dicom_url` fields contain **relative paths**, not full
-  URLs
+- `image_url`, `thumbnail_url`, `dicom_url` fields contain internally resolvable URLs,
+  such that they can be resolved before retuning to the client
 - Example: `"/api/records/123/image/"` not `"http://server/api/records/123/image/"`
 - Frontend constructs full URL using base API URL
 - This approach maintains portability across environments

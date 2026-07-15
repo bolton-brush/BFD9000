@@ -771,7 +771,7 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
                 refreshed_obj = DigitalRecord.objects.select_for_update().get(id=obj.id)
                 logger.info(f"Regeneration successful for {refreshed_obj.id}")
                 refreshed_obj.thumbnail.save(  # pyright: ignore[reportUnknownMemberType]
-                    f"{name}.jpg", ContentFile(thumb_bytes), save=True
+                    f"{name}.webp", ContentFile(thumb_bytes), save=True
                 )
                 obj.thumbnail = refreshed_obj.thumbnail
 
@@ -1342,7 +1342,7 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
 
             if thumb_bytes:
                 digital_record.thumbnail.save(  # pyright: ignore[reportUnknownMemberType]
-                    f"{file_uuid}.jpg", ContentFile(thumb_bytes), save=False
+                    f"{file_uuid}.webp", ContentFile(thumb_bytes), save=False
                 )
 
             # Run validators and save the record to the database

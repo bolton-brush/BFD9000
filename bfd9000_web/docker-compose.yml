@@ -15,12 +15,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # A dev-time decision to expose the DB, not necessary for deploys
     ports:
       - "127.0.0.1:5432:5432"
   bfd9000:
     # image: ghcr.io/open-ortho/edu.case.bfd9000:local
     image: localhost/edu.case.bfd9000:latest
     container_name: bfd9000
+    secrets:
+      - source: box_config
+        target: /run/secrets/box_config.json
+    # Also a dev-time decision. This is NOT the final endpoint for production
     ports:
       - "127.0.0.1:9000:9000"
     depends_on:
@@ -45,6 +50,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DJANGO_MEDIA_ROOT=/media
+      - BOX_JWT_CONFIG_FILE=/run/secrets/box_config.json
       # Local mode (no proxy, direct access at http://localhost:9000/):
       # - DJANGO_FORCE_SCRIPT_NAME=
       # - SCRIPT_NAME=
@@ -60,6 +66,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    # These are the production ports, absolutely necessary for production
     ports:
       - "8000:80"
       - "4430:443"
@@ -86,6 +93,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:9010:9010"
+secrets:
+  box_config:
+    file: ./box_config.json
 volumes:
   media_volume:
   postgres_data:

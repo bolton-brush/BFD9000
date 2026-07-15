@@ -101,7 +101,6 @@ class BoxStorageBackend(StorageBackend[Path, int]):
 
         """
         items = client.folders.get_folder_items(parent_id)
-        print(items.entries)
         wanted_item_type = (
             FolderBaseTypeField.FOLDER if is_folder else FileBaseTypeField.FILE
         )
@@ -272,6 +271,7 @@ class BoxStorageBackend(StorageBackend[Path, int]):
             return False
 
         client.files.delete_file_by_id(item.id)
+        self._get_item.cache_clear()
 
         return True
 
@@ -337,6 +337,7 @@ class BoxStorageBackend(StorageBackend[Path, int]):
         if not folder:
             return False
         client.folders.delete_folder_by_id(folder.id)
+        self._get_item.cache_clear()
         return True
 
     @override

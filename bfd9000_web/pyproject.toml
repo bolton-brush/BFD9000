@@ -1,6 +1,6 @@
 [dependency-groups]
 dev = [
-  "box-sdk-gen>=1.17.0",
+  "box-sdk-gen[jwt]>=1.17.0",
   "cachetools>=7.1.4",
   "cryptography>=44.0,<45.0",
   "django>=6.0,<7.0",
@@ -35,7 +35,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  "box-sdk-gen>=1.17.0",
+  "box-sdk-gen[jwt]>=1.17.0",
   "cachetools>=7.1.4",
   "cryptography>=44.0,<45.0",
   "django>=6.0,<7.0",

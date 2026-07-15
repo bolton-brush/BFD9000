@@ -8,7 +8,7 @@
     uv2nix.url = "github:pyproject-nix/uv2nix";
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
-    bfd9000_thumb.url = ./bfd9000_thumb;
+    stl_thumb.url = "github:bolton-brush/STL-Thumb/release";
   };
 
   outputs =
@@ -39,7 +39,7 @@
         deps = with pkgs; [
           file
           sqlite
-          inputs.bfd9000_thumb.packages.${system}.stl-thumb
+          inputs.stl_thumb.packages.${system}.stl-thumb
         ];
         bfd9000-app = pkgs.callPackage ./nix/bfd9000-app.nix { pythonEnv = venv; };
         dockerImage = pkgs.callPackage ./nix/bfd9000-docker.nix {
@@ -69,7 +69,6 @@
           };
           settings.formatter.shellcheck.excludes = [
             ".envrc"
-            "bfd9000_thumb/.envrc"
           ];
         };
       in
@@ -90,7 +89,7 @@
                 basedpyright
                 podman
                 podman-compose
-                inputs.bfd9000_thumb.packages.${system}.stl-thumb
+                inputs.stl_thumb.packages.${system}.stl-thumb
                 gnumake
                 act
               ]

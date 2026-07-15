@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from mime_enum import MimeType
 
-SYSTEM_RECORD_TYPE = "https://orthodontics.case.edu/fhir/identifier-system/record-type"
+SYSTEM_RECORD_TYPE = (
+    "https://terminology.open-ortho.org/fhir/sid/cwru/CodeSystem/ortho-record-type"
+)
 SYSTEM_ORIENTATION = "http://snomed.info/sct"
 SYSTEM_MODALITY = "http://dicom.nema.org/resources/ontology/DCM"
 SYSTEM_PROCEDURE = "http://snomed.info/sct"

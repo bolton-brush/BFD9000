@@ -128,7 +128,11 @@ class URIStorageBackend[H](StorageBackend[str, int]):
 
         """
         session = self._session_registry[handle]
-        return self._routes[session.backend]._raw_close(session.handle)
+        ret = self._routes[session.backend]._raw_close(session.handle)
+        _ = self._session_registry.pop(
+            handle
+        )  # Only close our handle once we close it from its route
+        return ret
 
     @override
     def delete(self, path: str) -> bool:
