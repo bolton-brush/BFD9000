@@ -19,8 +19,8 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
   bfd9000:
-    # image: ghcr.io/open-ortho/edu.case.bfd9000:local
-    image: localhost/edu.case.bfd9000:latest
+    # image: ghcr.io/bolton-brush/BFD9000:staging
+    image: localhost/bfd9000:build
     container_name: bfd9000
     secrets:
       - source: box_config

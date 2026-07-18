@@ -1,10 +1,14 @@
 name: Run All Tests
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
   pull_request:
     types:
       - opened
       - ready_for_review
       - review_requested
+      - synchronize
   workflow_dispatch:
 jobs:
   test:

@@ -14,8 +14,8 @@
   ...
 }:
 dockerTools.buildLayeredImage {
-  name = "edu.case.bfd9000";
-  tag = "latest";
+  name = "bfd9000";
+  tag = "build";
 
   contents = [
     pythonEnv
