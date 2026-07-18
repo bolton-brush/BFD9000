@@ -556,8 +556,10 @@ The API follows a clear resource hierarchy:
 
 - `image_url`, `thumbnail_url`, `dicom_url` fields contain internally resolvable URLs,
   such that they can be resolved before retuning to the client
-- Example: `"/api/records/123/image/"` not `"http://server/api/records/123/image/"`
-- Frontend constructs full URL using base API URL
+- Example: `"box://internal/file/identifier"` not
+  `"http://server/api/records/123/image/"`
+- Frontend constructs full URL as a view by using the storage API to retrieve the object
+  internally
 - This approach maintains portability across environments
 
 ### Nested vs. Direct Access

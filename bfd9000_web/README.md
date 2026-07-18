@@ -17,6 +17,9 @@ environment across development and deployment.
 
 ## Running the Django Application
 
+Do note, SSO will not work on non-https-proxied pages. An easy way to do this is by
+using the provided `docker-compose`, see below.
+
 1. Make sure to apply any database migrations and import data into the database:
 
    ```bash
@@ -93,12 +96,6 @@ The checks outlined within the code cleanliness section of the main `README.md` 
 apply here, be sure to check any of those warnings from `mypy`, `ruff`, or
 `basedpyright` before completing your PR.
 
-## Running additional code checks
-
-The checks outlined within the code cleanliness section of the main `README.md` also
-apply here, be sure to check any of those warnings from `mypy`, `ruff`, or
-`basedpyright` before completing your PR.
-
 ## Local Docker Workflow
 
 Ensure you are within the nix development shell with `nix develop` or with direnv and
@@ -114,15 +111,15 @@ load-podman
 ```
 
 This loads the built image into your load podman registry under the name of
-`localhost/edu.case.bfd9000:latest`.
+`localhost/bfd9000:build`.
 
-Run the container directly:
+Run the container directly (SSO will not work):
 
 ```bash
-podman run --rm -p 9000:9000 localhost/edu.case.bfd9000:latest
+podman run --rm -p 9000:9000 localhost/bfd9000:build
 ```
 
-Or use the provided compose file:
+Or use the provided compose file (Caddy will proxy, allowing SSO to work):
 
 ```bash
 # Copy the example env file and edit as needed
@@ -130,6 +127,8 @@ cd bfd9000_web
 cp dot-env.example .env
 podman-compose up
 ```
+
+The https proxied port will be active on `https://localhost:4430`.
 
 For production, `nix build .#dockerImage` is called directly and uploaded to the OCI
 store. You may run this manually to dissect the built docker-image if there is confusion
@@ -146,6 +145,9 @@ python bfd9000_web/manage.py import_subjects lancaster --file LancasterDemograph
 
 Use `--dry-run` to validate without writing to the database. Use `--include-names` to
 populate first/last names when available (default is to leave names null).
+
+If running within a docker container, `podman cp` the files into the container, then
+`podman exec` in order to run the correct management commands
 
 ## Additional Information
 
