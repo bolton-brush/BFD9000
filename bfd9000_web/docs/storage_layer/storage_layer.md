@@ -47,6 +47,31 @@ handles, allowing for automatic implementation of `__enter__` and `__exit__` wit
 additional work on the backend's implementation, allowing for safer file usage by
 scoping file closes.
 
+## Deletion policy
+
+`delete` and `rmdir` are required backend capabilities because Django's storage API,
+explicit file replacement, and staging cleanup need a common deletion primitive. Their
+presence in the interface does not authorize deletion of archival data. Storage
+backends operate on paths and handles and therefore cannot determine whether a caller
+is permitted to delete the corresponding archive record; that decision belongs to the
+application layer.
+
+The application must follow these guardrails:
+
+- A pre-archive staging object may be deleted when an explicit lifecycle operation
+  replaces it, abandons its upload, or cleans it up after successful archival.
+- Once a `DigitalRecord.source_file` contains an archival URI, generic cleanup,
+  overwrite, synchronization, cache eviction, and model-update code must not delete the
+  referenced object.
+- Deletion of an archived original must be initiated by an explicit record-maintenance
+  workflow after the caller's record-delete permission has been checked.
+- Directory removal is subject to the same rules and must not be used to bypass
+  per-record deletion authorization.
+
+These rules apply to every concrete and helper backend. A backend's successful
+`delete` or `rmdir` result confirms only that the storage operation succeeded, not that
+the operation was authorized by archive policy.
+
 ## Implemented backends:
 
 - Box: A backend using box.com

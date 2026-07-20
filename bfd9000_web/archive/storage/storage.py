@@ -157,6 +157,10 @@ class StorageBackend[PathType, FileHandle](ABC):
     def delete(self, path: PathType) -> bool:
         """Deletes a file or directory from the file system.
 
+        This is a low-level storage capability, not authorization to remove archival
+        data. Callers must follow the deletion policy documented in
+        ``docs/storage_layer/storage_layer.md``.
+
         Args:
             path: The file or directory to delete
 
@@ -194,7 +198,11 @@ class StorageBackend[PathType, FileHandle](ABC):
 
     @abstractmethod
     def rmdir(self, path: PathType) -> bool:
-        """Removes a directory given a path
+        """Removes a directory given a path.
+
+        This is a low-level storage capability, not authorization to remove archival
+        data. Callers must follow the deletion policy documented in
+        ``docs/storage_layer/storage_layer.md``.
 
         Args:
             path: The directory to delete

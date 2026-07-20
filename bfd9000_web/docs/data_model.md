@@ -326,13 +326,18 @@ should be managed by the importer.
 
 ## Staging vs archival storage
 
-During pre-archive staging inside Django:
+Before archival, `source_file` identifies the staging object managed by Django:
 
 - File path layout is intentionally simple and implementation-focused.
-- `source_file` is transient and should be removed after archival.
+- After successful archival, `source_file` is updated to the backend-qualified archival
+  URI and remains the record's canonical storage locator.
+- The superseded staging object may then be removed. Generic cleanup or overwrite code
+  must not delete the archived object referenced by the updated URI.
 
 Archival path hierarchy and provider-specific layout belong to the Storage Layer
-implementation (see issue #43), including local-storage hierarchy rules.
+implementation (see issue #43), including local-storage hierarchy rules. See the
+[storage-layer deletion policy](storage_layer/storage_layer.md#deletion-policy) for the
+required authorization boundary and guardrails.
 
 ## Thumbnail policy
 
