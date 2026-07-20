@@ -39,7 +39,7 @@
     - [ID Types](#id-types)
     - [Pagination](#pagination)
     - [Timestamps](#timestamps)
-    - [Image URLs](#image-urls)
+    - [Storage URIs](#storage-uris)
     - [Nested vs. Direct Access](#nested-vs-direct-access)
     - [Status Enumerations](#status-enumerations)
     - [Real-time Updates](#real-time-updates)
@@ -306,7 +306,7 @@ ______________________________________________________________________
 
   - `id`, `record_type`, `orientation`, `modality`, `operator`
   - `acquisition_date`, `file_size`, `image_type`
-  - `thumbnail_url`: URL to thumbnail image
+  - `thumbnail_url`: backend-qualified storage URI for the thumbnail
   - `dicom_status`: conversion status
   - `pacs_status`: upload status
 
@@ -371,8 +371,8 @@ collection field is accepted in this payload.
   - `file_size` (integer, bytes)
   - `file_format` (string): "PNG" or "STL"
   - `image_type` (string): e.g., "TIFF", "JPEG2000" (after conversion)
-  - `thumbnail_url` (string): path to thumbnail (served via API)
-  - `image_url` (string): path to full image (served via API)
+  - `thumbnail_url` (string): backend-qualified storage URI for the thumbnail
+  - `image_url` (string): backend-qualified storage URI for the source image
   - `dicom_status` (string): "pending", "processing", "complete", "failed" (for backend
     tracking)
   - `pacs_status` (string): "pending", "uploading", "complete", "failed" (for backend
@@ -394,7 +394,8 @@ Failed operations are handled by backend monitoring/alerting systems.
 - **Response**: Complete record object (same fields as 5.1) plus:
 
   - `encounter`: nested encounter object with subject info
-  - `dicom_url` (string, nullable): path to DICOM file if conversion complete
+  - `dicom_url` (string, nullable): backend-qualified storage URI for the DICOM file if
+    conversion is complete
   - `error_message` (string, nullable): if processing failed
 
 #### 5.3 Update Record Metadata
@@ -552,15 +553,24 @@ The API follows a clear resource hierarchy:
 - All timestamps in ISO 8601 format with timezone: `2025-11-29T14:30:00Z`
 - Date-only fields in ISO 8601 date format: `2025-11-29`
 
-### Image URLs
+### Storage URIs
 
-- `image_url`, `thumbnail_url`, `dicom_url` fields contain internally resolvable URLs,
-  such that they can be resolved before retuning to the client
-- Example: `"box://internal/file/identifier"` not
-  `"http://server/api/records/123/image/"`
-- Frontend constructs full URL as a view by using the storage API to retrieve the object
-  internally
-- This approach maintains portability across environments
+Despite their `_url` suffix, `image_url`, `thumbnail_url`, and `dicom_url` contain
+backend-qualified storage URIs, not HTTP URLs. Their format is
+`<backend-scheme>://<backend-locator>`:
+
+- The scheme selects a backend registered with the server's `URIStorageBackend`.
+- The remainder is an opaque path or file handle interpreted by that backend.
+- For example, `box://123456789` selects the Box backend and identifies Box file
+  `123456789`.
+
+API clients must treat these values as opaque storage metadata. They must not prepend
+the API base URL, attempt to dereference the URI, or use it to access the storage
+provider directly. To retrieve content, clients use the separate authenticated
+`/api/records/{id}/image/`, `/api/records/{id}/thumbnail/`, and
+`/api/records/{id}/dicom/` endpoints. The server resolves the stored URI internally.
+Keeping storage location separate from the download endpoints allows the configured
+backend to change without changing the client-facing retrieval API.
 
 ### Nested vs. Direct Access
 

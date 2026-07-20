@@ -740,13 +740,13 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
         )
 
     def get_thumbnail_url(self, obj: DigitalRecord) -> str | None:  # noqa: PLR6301
-        """Return the thumbnail url for the digital record.
+        """Return the backend-qualified thumbnail storage URI.
 
         Args:
-            obj: The object to obtain the thumbnail url for
+            obj: The object to obtain the thumbnail storage URI for
 
         Returns:
-            The thumbnail url for this object, if found
+            The thumbnail storage URI for this object, if found
 
         """
         if (
@@ -782,13 +782,13 @@ class DigitalRecordSerializer(serializers.ModelSerializer[DigitalRecord]):
             return None
 
     def get_image_url(self, obj: DigitalRecord) -> str | None:  # noqa: PLR6301
-        """Return the image url for the digital record.
+        """Return the backend-qualified source image storage URI.
 
         Args:
-            obj: The object to obtain the image url for
+            obj: The object to obtain the source image storage URI for
 
         Returns:
-            The image url for this object, if found
+            The source image storage URI for this object, if found
 
         """
         if getattr(obj, "source_file", None):

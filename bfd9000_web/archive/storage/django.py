@@ -166,6 +166,7 @@ class DjangoStorageAdapter[H](Storage):
 
     @override
     def url(self, name: str | None) -> str:
+        """Return the backend-qualified stored name without creating an HTTP URL."""
         return name or ""
 
     @override
