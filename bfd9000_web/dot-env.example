@@ -3,6 +3,11 @@ SECRET_KEY=your-secret-key-here
 DEBUG=True
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
+# CAS / reverse proxy
+CAS_ENDPOINT=https://login.case.edu/cas/
+# Externally visible origin used to construct CAS service and callback URLs.
+PROXIED_URL=https://localhost:4430
+
 # Box.com Integration
 # Use exactly one authentication method; precedence: DEVELOPER_TOKEN > JWT > OAUTH.
 #

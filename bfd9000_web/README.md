@@ -119,6 +119,10 @@ Run the container directly (SSO will not work):
 podman run --rm -p 9000:9000 localhost/bfd9000:build
 ```
 
+Direct access at `http://localhost:9000` does not use the Caddy TLS proxy and is only
+intended for development that does not require CAS. Use the compose workflow below when
+testing login or any CAS callback behavior.
+
 Or use the provided compose file (Caddy will proxy, allowing SSO to work):
 
 ```bash
@@ -128,7 +132,11 @@ cp dot-env.example .env
 podman-compose up
 ```
 
-The https proxied port will be active on `https://localhost:4430`.
+The HTTPS proxy will be active at `https://localhost:4430`. `CAS_ENDPOINT` identifies
+the CAS server, while `PROXIED_URL` must match the externally visible application origin
+that CAS uses for service and callback URLs. The values in `dot-env.example` are ready
+for the local Caddy workflow; update them when the CAS server or externally visible
+application origin differs.
 
 For production, `nix build .#dockerImage` is called directly and uploaded to the OCI
 store. You may run this manually to dissect the built docker-image if there is confusion
