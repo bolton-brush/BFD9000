@@ -9,6 +9,8 @@
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
     stl_thumb.url = "github:bolton-brush/STL-Thumb/release";
+    # TODO: Change the branch once the necessary PR#11 has been merged
+    bfd9020.url = "github:bolton-brush/BFD9020/feature/1-nixify";
   };
 
   outputs =
@@ -25,13 +27,19 @@
         overlay = workspace.mkPyprojectOverlay {
           sourcePreference = "wheel";
         };
+        bfd9020-sdk = inputs.bfd9020.packages.${system}.app.client-sdk;
         pythonBase = pkgs.callPackage inputs.pyproject.build.packages {
           inherit python;
+        };
+        clientSdkOverlay = final: prev: {
+          # Swap the locked package with the Nix derivation from the upstream repo
+          bfd9020-ai-api-client = bfd9020-sdk;
         };
         pythonSet = pythonBase.overrideScope (
           pkgs.lib.composeManyExtensions [
             inputs.pybuild.overlays.wheel
             overlay
+            clientSdkOverlay
           ]
         );
         venv = pythonSet.mkVirtualEnv "venv" workspace.deps.default;
@@ -110,6 +118,8 @@
               export PYTHONPATH="$PROJ_ROOT:${venvDev}/lib/*/site-packages:$PYTHONPATH"
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
               ln -sfn ${venvDev} $PROJ_ROOT/.venv
+              mkdir -p $PROJ_ROOT/.dummy_deps
+              ln -sfn ${bfd9020-sdk} $PROJ_ROOT/.dummy_deps/bfd9020-ai-api-client
             '';
           };
         };
