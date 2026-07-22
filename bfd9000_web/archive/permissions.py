@@ -1,14 +1,17 @@
 """Endpoint Permission"""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, cast, override
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission
-from rest_framework.request import Request
-from rest_framework.views import APIView
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser, User
+    from BFD9000.conf import AuthUser
+    from django.contrib.auth.models import AnonymousUser
     from django.db.models import Model
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
 
 
 class CuratorOrSuperuserEditPermission(BasePermission):
@@ -26,7 +29,7 @@ class CuratorOrSuperuserEditPermission(BasePermission):
             True if authenticated
 
         """
-        user = cast("User | AnonymousUser | None", request.user)
+        user = cast("AuthUser | AnonymousUser | None", request.user)
         if not user or not user.is_authenticated:
             return False
         if user.is_superuser or request.method in SAFE_METHODS:
@@ -64,7 +67,7 @@ class RecordPermission(BasePermission):
 
     @override
     def has_permission(self, request: Request, view: APIView) -> bool:
-        user = cast("User | AnonymousUser | None", request.user)
+        user = cast("AuthUser | AnonymousUser | None", request.user)
         if not user or not user.is_authenticated:
             return False
         if request.method == "DELETE":

@@ -16,6 +16,10 @@ Including another URLconf
 
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import django_cas_ng.views
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -31,6 +35,9 @@ from drf_spectacular.views import (
 )
 
 from BFD9000.conf import settings
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponse
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:

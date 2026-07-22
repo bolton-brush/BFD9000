@@ -43,8 +43,12 @@ docstring-code-line-length = "dynamic"
 [lint]
 preview = true
 select = ["E", "F", "W", "C90", "I", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "B", "COM", "C4", "DTZ", "PIE", "Q", "RSE", "RET", "SIM", "TID", "ARG", "PTH", "PL", "FAST", "DOC", "RUF", "TCH"]
-ignore = ["D211", "D213", "D400", "D401", "D415", "N999", "COM812", "D203", "TID252"]
+ignore = ["D211", "D213", "D400", "D401", "D415", "N999", "COM812", "D203", "TID252", "UP040"]
 fixable = ["ALL"]
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.isort]
+# Tells Ruff to enforce this future import across all files
+required-imports = ["from __future__ import annotations"]

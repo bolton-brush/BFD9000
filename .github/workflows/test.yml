@@ -1,8 +1,11 @@
 name: Run All Tests
 on:
-  # Only run when a review is requested on a PR (not on push, open, etc)
   pull_request:
-    types: [review_requested]
+    types:
+      - opened
+      - ready_for_review
+      - review_requested
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install Nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
       - name: Run All tests
         run: |
           nix flake check --keep-going

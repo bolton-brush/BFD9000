@@ -1,5 +1,7 @@
 """Sets up the Curator group with permissions"""
 
+from __future__ import annotations
+
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand

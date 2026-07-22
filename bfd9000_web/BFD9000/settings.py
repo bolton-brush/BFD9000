@@ -9,37 +9,134 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
-from pathlib import Path
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
+import enum
+import logging
+import os
+import sys
+import tempfile
+from pathlib import Path
+from types import MappingProxyType
+from typing import TYPE_CHECKING, final, override
+
+import dotenv
+from archive.storage.box import BoxStorageBackend
+from archive.storage.boxtypes import BoxAuthTypes
+from archive.storage.django import DjangoStorageAdapter
+from archive.storage.local import LocalStorageBackend
+from archive.storage.urihandler import URIStorageBackend
 from django_stubs_ext import monkeypatch
 
 monkeypatch()
-
 if TYPE_CHECKING:
-    from django.contrib.auth.models import User
+    from collections.abc import Mapping
 
-    AUTH_USER_MODEL = User
+AUTH_USER_MODEL = "auth.User"
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+denv = dotenv.dotenv_values()
+
+
+def _read_secret(name: str, default: str | None = None) -> str:
+    """Return the value of secret *name*, or *default* if not found.
+
+    Resolution order:
+    1. Environment variable ``name``
+    2. Dotenv resolution from ``.env`` file
+    2. Docker Compose secret file ``/run/secrets/<name>``
+    3. *default*
+
+    Returns:
+        The secret, if found, else empty string
+
+    """
+    value = os.environ.get(name) or denv.get(name)
+    if value is not None:
+        return value
+    secret_path = Path(f"/run/secrets/{name}")
+    if secret_path.is_file():
+        return secret_path.read_text(encoding="utf-8").strip() or ""
+    return default or ""
+
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = _read_secret("DEBUG", "True") == "True"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
+SECRET_KEY = _read_secret(
     "SECRET_KEY", "django-insecure-+6m#s88j*)qb+a%2s%cw31e2k04um&*a-fk!jgcpl3849(w4sm"
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "True") == "True"
+# Box.com Configuration
+BOX_DEVELOPER_TOKEN = _read_secret("BOX_DEVELOPER_TOKEN")
+BOX_JWT_CONFIG_FILE = _read_secret("BOX_JWT_CONFIG_FILE")
+BOX_FOLDER_ID = _read_secret("BOX_FOLDER_ID")
+# Disable OAuth for now
+# BOX_OAUTH_CLIENT_ID = _read_secret("BOX_OAUTH_CLIENT_ID")
+# BOX_OAUTH_CLIENT_SECRET = _read_secret("BOX_OAUTH_CLIENT_SECRET")
+# # Optional: explicit redirect URI for Box OAuth callback
+# # (defaults to auto-detected from request)
+# BOX_OAUTH_REDIRECT_URI = _read_secret("BOX_OAUTH_REDIRECT_URI")
+# # Path prefix for the shelve file used to persist Box OAuth tokens
+# BOX_TOKEN_STORAGE_PATH = Path(
+#     _read_secret("BOX_TOKEN_STORAGE_PATH") or BASE_DIR / ".box_token"
+# )
+
+BOX_AUTH = (
+    BoxAuthTypes.BoxDevToken(BOX_DEVELOPER_TOKEN)
+    if BOX_DEVELOPER_TOKEN
+    else BoxAuthTypes.BoxJWT(Path(BOX_JWT_CONFIG_FILE or "box_config.json"))
+)
+
+
+class StorageURIs(enum.StrEnum):
+    """Available Storage URIs"""
+
+    BOX = "box"
+    LOCAL = "local"
+
+
+file_storage: URIStorageBackend[int]
+
+if DEBUG:
+    if _read_secret("DEBUG_USE_BOX", "False") != "False":
+        file_storage = URIStorageBackend(
+            {StorageURIs.BOX: BoxStorageBackend(BOX_AUTH, BOX_FOLDER_ID)}
+        )
+    else:
+        temp_dir: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
+        base_path = Path(temp_dir.name).resolve()
+        file_storage = URIStorageBackend(
+            {StorageURIs.BOX: LocalStorageBackend(base_path)}
+        )
+else:
+    file_storage = URIStorageBackend(
+        {StorageURIs.BOX: BoxStorageBackend(BOX_AUTH, BOX_FOLDER_ID)}
+    )
+
+
+def GET_DJANGO_STORAGE() -> DjangoStorageAdapter[int]:  # noqa: N802
+    """Get the default Django storage module for this project
+
+    Returns:
+        A Django Storage Adapter object
+
+    """
+    return DjangoStorageAdapter(file_storage)
+
+
 APP_VERSION_FILE = BASE_DIR / "VERSION"
 APP_VERSION = (
-    os.environ.get("APP_VERSION")
+    _read_secret("APP_VERSION")
     or APP_VERSION_FILE.read_text(encoding="utf-8").strip()
     or "nover"
 )
@@ -47,9 +144,7 @@ APP_VERSION = (
 if not DEBUG and "SECRET_KEY" not in os.environ:
     raise RuntimeError("SECRET_KEY must be set when DEBUG=False")
 
-ALLOWED_HOSTS = os.environ.get(
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,bfd9000"
-).split(",")
+ALLOWED_HOSTS = _read_secret("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -112,7 +207,7 @@ WSGI_APPLICATION = "BFD9000.wsgi.application"
 # Use DB_ENGINE env var to select backend:
 #   unset / "django.db.backends.sqlite3"    SQLite (local runserver, default)
 #   "django.db.backends.postgresql"         PostgreSQL (docker-compose / production)
-_db_engine = os.environ.get("DB_ENGINE", "django.db.backends.sqlite3")
+_db_engine = _read_secret("DB_ENGINE", "django.db.backends.sqlite3")
 DATABASES = (
     {
         "default": {
@@ -124,11 +219,11 @@ DATABASES = (
     else {
         "default": {
             "ENGINE": _db_engine,
-            "NAME": os.environ.get("DB_NAME", "bfd9000"),
-            "USER": os.environ.get("DB_USER", "bfd9000"),
-            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-            "HOST": os.environ.get("DB_HOST", "db"),
-            "PORT": os.environ.get("DB_PORT", "5432"),
+            "NAME": _read_secret("DB_NAME", "bfd9000"),
+            "USER": _read_secret("DB_USER", "bfd9000"),
+            "PASSWORD": _read_secret("DB_PASSWORD", ""),
+            "HOST": _read_secret("DB_HOST", "db"),
+            "PORT": _read_secret("DB_PORT", "5432"),
         }
     }
 )
@@ -169,7 +264,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 # Subpath hosting config (DJANGO_FORCE_SCRIPT_NAME env)
-FORCE_SCRIPT_NAME = os.environ.get("DJANGO_FORCE_SCRIPT_NAME", None) or None
+FORCE_SCRIPT_NAME = _read_secret("DJANGO_FORCE_SCRIPT_NAME", None) or None
 
 
 # Prefix-aware STATIC_URL and MEDIA_URL
@@ -193,7 +288,7 @@ STORAGES = {
 
 # Media files (Uploads)
 MEDIA_URL = _prefix_url("media/")
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(_read_secret("DJANGO_MEDIA_ROOT") or BASE_DIR / "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -261,7 +356,7 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = os.environ.get(
+CORS_ALLOWED_ORIGINS = _read_secret(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
 ).split(",")
 
@@ -271,23 +366,97 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 # while CSRF_TRUSTED_ORIGINS is checked by Django's own CsrfViewMiddleware on
 # every unsafe request (POST, PUT, PATCH, DELETE).
 # Must include scheme, e.g.: https://example.com
-_csrf_trusted = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
+_csrf_trusted = _read_secret("CSRF_TRUSTED_ORIGINS", "").strip()
 CSRF_TRUSTED_ORIGINS: list[str] = [
     o.strip() for o in _csrf_trusted.split(",") if o.strip()
 ]
 
-SCANNER_API_BASE = os.environ.get("SCANNER_API_BASE", "http://localhost:5000")
-SCANNER_DEVICE_ID = os.environ.get("SCANNER_DEVICE_ID", "scanner-001")
-BFD9020_BASE_URL = os.environ.get(
-    "BFD9020_BASE_URL", "https://wingate.case.edu/bfd9020"
-)
+SCANNER_API_BASE = _read_secret("SCANNER_API_BASE", "http://localhost:5000")
+SCANNER_DEVICE_ID = _read_secret("SCANNER_DEVICE_ID", "scanner-001")
+BFD9020_BASE_URL = _read_secret("BFD9020_BASE_URL", "https://wingate.case.edu/bfd9020")
+
+
+# Logging Configuration
+@final
+class PrettyFormatter(logging.Formatter):
+    """A custom formatter to add color to stdout log records."""
+
+    GRAY = "\x1b[90m"
+    YELLOW = "\x1b[33;21m"
+    RED = "\x1b[31;21m"
+    BOLD_RED = "\x1b[31;1m"
+    RESET = "\x1b[0m"
+
+    # Define a different format for each level
+    FORMATS: Mapping[int, str] = MappingProxyType(
+        {
+            logging.DEBUG: f"{GRAY}%(asctime)s {GRAY}DEBUG {GRAY}%(name)s: {
+                RESET
+            }%(message)s",
+            logging.INFO: f"{GRAY}%(asctime)s {RESET}INFO  {GRAY}%(name)s: {
+                RESET
+            }%(message)s",
+            logging.WARNING: f"{GRAY}%(asctime)s {YELLOW}WARN  {GRAY}%(name)s: {
+                RESET
+            }%(message)s",
+            logging.ERROR: f"{GRAY}%(asctime)s {RED}ERROR {GRAY}%(name)s: {
+                RESET
+            }%(message)s",
+            logging.CRITICAL: f"{GRAY}%(asctime)s {BOLD_RED}CRIT  {GRAY}%(name)s: {
+                RESET
+            }%(message)s",
+        }
+    )
+
+    @override
+    def format(self, record: logging.LogRecord) -> str:
+        use_color = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+        log_fmt = (
+            self.FORMATS.get(record.levelno)
+            if use_color
+            else "%(asctime)s %(levelname)-5s %(name)s: %(message)s"
+        )
+        return logging.Formatter(log_fmt).format(record)
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "pretty": {
+            "()": PrettyFormatter,
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "pretty",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "archive": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}
 
 # Thumbnail generation policy (staging and UI previews)
-THUMBNAIL_MAX_WIDTH = int(os.environ.get("THUMBNAIL_MAX_WIDTH", "300"))
-THUMBNAIL_MAX_HEIGHT = int(os.environ.get("THUMBNAIL_MAX_HEIGHT", "300"))
-THUMBNAIL_TARGET_BYTES = int(os.environ.get("THUMBNAIL_TARGET_BYTES", str(20 * 1024)))
+THUMBNAIL_MAX_WIDTH = int(_read_secret("THUMBNAIL_MAX_WIDTH", "300"))
+THUMBNAIL_MAX_HEIGHT = int(_read_secret("THUMBNAIL_MAX_HEIGHT", "300"))
+THUMBNAIL_TARGET_BYTES = int(_read_secret("THUMBNAIL_TARGET_BYTES", str(20 * 1024)))
 THUMBNAIL_HARD_MAX_BYTES = int(
-    os.environ.get("THUMBNAIL_HARD_MAX_BYTES", str(100 * 1024))
+    _read_secret("THUMBNAIL_HARD_MAX_BYTES", str(100 * 1024))
 )
-THUMBNAIL_DEFAULT_QUALITY = int(os.environ.get("THUMBNAIL_DEFAULT_QUALITY", "75"))
-THUMBNAIL_MIN_QUALITY = int(os.environ.get("THUMBNAIL_MIN_QUALITY", "40"))
+THUMBNAIL_DEFAULT_QUALITY = int(_read_secret("THUMBNAIL_DEFAULT_QUALITY", "75"))
+THUMBNAIL_MIN_QUALITY = int(_read_secret("THUMBNAIL_MIN_QUALITY", "40"))

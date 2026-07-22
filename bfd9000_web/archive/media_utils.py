@@ -1,19 +1,29 @@
 """Utilities for media processing and transformations."""
 
-import logging
-import uuid
-from collections.abc import Iterable, Iterator, Sequence
-from io import BytesIO
-from pathlib import Path
-from typing import IO, Any, TypedDict
+from __future__ import annotations
 
+import logging
+import shutil
+import subprocess  # noqa: S404
+import uuid
+from io import BytesIO
+from typing import IO, TYPE_CHECKING, TypedDict
+
+import magic
 from BFD9000.conf import settings
-from django.core.files.uploadedfile import UploadedFile
-from django.db.models.fields.files import FieldFile
+from mime_enum import MimeType
 from PIL import Image, TiffImagePlugin
 from pydicom.uid import (
     generate_uid as pydicom_generate_uid,
 )
+
+from archive.constants import RASTER_MIMES
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from archive.storage.django import ByteFile
+
 
 logger = logging.getLogger(__name__)
 
@@ -97,41 +107,6 @@ class TransformOp(TypedDict):
     flip: bool
 
 
-def parse_transform_ops(
-    ops: Sequence[dict[str, Any]] | Sequence[TransformOp],  # pyright: ignore[reportExplicitAny]
-) -> Iterator[TransformOp]:
-    """Parses a list operations
-
-    Args:
-        ops: The list of JSON dict of operations
-
-    Yields:
-        Typed operations
-
-    """
-    for op in ops:
-        # Resolve Rotation
-        try:
-            rotation = int(op.get("rotation", 0)) % 360
-        except (ValueError, TypeError):
-            rotation = 0
-
-        # Resolve Flip
-        try:
-            raw_flip = op.get("flip", False)
-            if isinstance(raw_flip, str) and raw_flip.lower() == "false":
-                flip = False
-            else:
-                flip = bool(raw_flip)
-        except (ValueError, TypeError):
-            flip = False
-
-        yield {
-            "rotation": rotation,
-            "flip": flip,
-        }
-
-
 def apply_transform_ops(img: Image.Image, ops: Iterable[TransformOp]) -> Image.Image:
     """Apply ordered rotate/flip operations (e.g., for Record preview).
 
@@ -152,7 +127,7 @@ def apply_transform_ops(img: Image.Image, ops: Iterable[TransformOp]) -> Image.I
     return transformed
 
 
-def convert_tiff_to_png_bytes(upload: UploadedFile | FieldFile | IO[bytes]) -> bytes:
+def convert_tiff_to_png_bytes(upload: ByteFile | IO[bytes]) -> bytes:
     """Convert TIFF to PNG, preserving 16-bit grayscale if needed.
 
     Args:
@@ -187,8 +162,59 @@ def convert_tiff_to_png_bytes(upload: UploadedFile | FieldFile | IO[bytes]) -> b
         return buf.getvalue()
 
 
-def generate_thumbnail_jpeg_bytes(
-    fileobj: FieldFile,
+def generate_stl_thumbnail(
+    stl_file: BytesIO, width: int = 300, height: int = 300
+) -> bytes | None:
+    """Executes the Rust WGPU CLI engine completely using in-memory pipelines.
+
+    Args:
+        stl_file: The input file to generate a thumbnail for
+        width: Number of horizontal pixels
+        height: Number of vertical pixels
+
+    Returns:
+        A Django File object for the png generated
+
+    """
+    _ = stl_file.seek(0)
+    input_bytes = stl_file.read()
+    bin = shutil.which("stl-thumb")
+
+    if not bin:
+        logger.error("stl-thumb not found")
+        return None
+
+    try:
+        process = subprocess.run(  # noqa: S603
+            [
+                bin,
+                "--width",
+                str(width),
+                "--height",
+                str(height),
+                "--format",
+                "webp",
+            ],
+            input=input_bytes,
+            capture_output=True,
+            check=True,
+            timeout=5,  # Safe termination safety rail
+        )
+
+        # process.stdout contains the pure raw PNG binary data block
+        return process.stdout
+
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(
+            f"Rust render engine error output channel: {
+                getattr(e, 'stderr', b'').decode()
+            }"
+        )
+        return None
+
+
+def generate_thumbnail_webp_bytes(
+    fileobj: ByteFile,
     filename: str,
     transform_ops: Iterable[TransformOp] | None = None,
 ) -> bytes | None:
@@ -196,7 +222,7 @@ def generate_thumbnail_jpeg_bytes(
 
     - For TIFF: converts to PNG bytes, reloads PNG as PIL, then continues.
     - For PNG/JPEG: loads via PIL.
-    - For 3D/file types (stl, ply, obj): returns None.
+    - For 3D/file types (stl, ply, obj): renders a thumbnail with bfd9000_thumb.
 
     Args:
         fileobj: The image file to generate a thumbnail for
@@ -207,21 +233,37 @@ def generate_thumbnail_jpeg_bytes(
         Bytes for JPEG thumbnail, or None (3D or unsupported)
 
     """
-    ext = Path(filename).suffix.lower().lstrip(".")
-    raster_types = {"png", "tif", "tiff", "jpeg", "jpg"}
-    non_raster_types = {"stl", "ply", "obj"}
-    if ext in non_raster_types:
+    file_size = getattr(fileobj, "size", None)
+    # Check if an explicit size is exposed to optimize memory allocation
+    if file_size and file_size > 0:
+        raw_buffer = bytearray(file_size)  # pyright: ignore[reportAny]
+        fileobj.readinto(raw_buffer)  # pyright: ignore[reportAny]
+        mem_file = BytesIO(raw_buffer)
+    else:
+        mem_file = BytesIO(fileobj.read())  # pyright: ignore[reportAny]
+
+    sample_bytes = mem_file.getvalue()[:4096]
+    try:
+        # Identify the true underlying mime type via header bytes
+        mime_type = magic.from_buffer(sample_bytes, mime=True)
+    except Exception:
+        logger.error("Libmagic failed to inspect bytes for %s", filename, exc_info=True)
         return None
-    if ext not in raster_types:
-        return None
-    fileobj.seek(0)  # pyright: ignore[reportAny]
+
+    if mime_type not in RASTER_MIMES:
+        bytes = generate_stl_thumbnail(mem_file)
+        if not bytes:
+            return None
+        return _render_thumbnail_from_raster(Image.open(BytesIO(bytes)))
+
     img: Image.Image
     try:
-        if ext in {"tif", "tiff"}:
-            png_bytes = convert_tiff_to_png_bytes(fileobj)
+        if mime_type in {MimeType.IMAGE_TIFF}:
+            png_bytes = convert_tiff_to_png_bytes(mem_file)
             img = Image.open(BytesIO(png_bytes))
         else:
-            img = Image.open(fileobj)
+            img = Image.open(mem_file)
+
     except Exception:
         logger.warning(
             "Failed to open or parse image file: %s", filename, exc_info=True
@@ -235,11 +277,12 @@ def generate_thumbnail_jpeg_bytes(
         return _render_thumbnail_from_raster(img)
     except Exception:
         logger.warning("Thumbnail rendering failed for %s", filename, exc_info=True)
+
     return None
 
 
 def _render_thumbnail_from_raster(img: Image.Image) -> bytes | None:
-    """Create JPEG thumbnail bytes with project thumbnail compression policy.
+    """Create WebP thumbnail bytes with project thumbnail compression policy.
 
     Target: 300x300 px, ~20KB, hard 100KB limit (from settings)
 
@@ -257,52 +300,32 @@ def _render_thumbnail_from_raster(img: Image.Image) -> bytes | None:
     default_quality: int = int(getattr(settings, "THUMBNAIL_DEFAULT_QUALITY", 75))
     min_quality: int = int(getattr(settings, "THUMBNAIL_MIN_QUALITY", 40))
 
-    processed: Image.Image = (
-        img.copy()
-    )  # Create a copy to avoid modifying the original image
-    if (
-        processed.mode == "RGBA"
-    ):  # Handle images with alpha channel (e.g., PNG with transparency)
-        processed = processed.convert("RGB")  # Convert to RGB, discarding alpha
-    elif processed.mode not in {
-        "RGB",
-    }:  # Process non-RGB modes (grayscale, palette, etc.)
-        if processed.mode in {
-            "I",
-            "I;16",
-            "I;16B",
-            "I;16L",
-        }:  # High-bit grayscale modes (32-bit or 16-bit)
-            # These modes appear for 16-bit PNGs and 12/16-bit TIFFs
-            # after preprocessing in convert_tiff_to_png_bytes
-            processed = processed.convert(
-                "F"
-            )  # Convert to float mode ('F') for precise division operations
-            processed = processed.point(
-                lambda x: x / 256
-            )  # Scale down high-bit values (0-65535) to 8-bit range (0-255)
-            # by dividing by 256 (equivalent to right-shift by 8 for 16-bit)
-            processed = processed.convert("L")  # Convert to 8-bit grayscale ('L') mode
-        else:  # For other modes like 'P' (palette), 'LA' (grayscale with alpha), etc.
-            processed = processed.convert("RGB")  # Convert directly to RGB
-    # Ensure RGB for JPEG
-    if processed.mode != "RGB":  # Final check to guarantee RGB mode
-        processed = processed.convert(
-            "RGB"
-        )  # Convert any remaining non-RGB images to RGB for JPEG compatibility
+    processed: Image.Image = img.copy()
+
+    if processed.mode in {"I", "I;16", "I;16B", "I;16L"}:
+        # Convert to float, then grayscale
+        processed = processed.convert("F")
+        processed = processed.point(lambda x: x / 256)
+        processed = processed.convert("L")
+    elif processed.mode not in {"RGB", "RGBA"}:
+        processed = processed.convert("RGBA")
 
     processed.thumbnail((max_width, max_height))
 
     quality = default_quality
     best_fit: bytes | None = None
+
     while quality >= min_quality:
         out = BytesIO()
-        processed.save(out, format="JPEG", quality=quality, optimize=True)
+        # Save explicitly as WEBP. Quality ranges from 0-100 (lossy mode)
+        processed.save(out, format="WEBP", quality=quality)
         payload = out.getvalue()
+
         if len(payload) <= target_bytes:
             return payload
         if len(payload) <= hard_max_bytes:
             best_fit = payload
+
         quality -= 5
 
     return best_fit

@@ -5,6 +5,9 @@ for subjects, encounters, records, and related medical entities.
 It also includes custom actions for file serving and valueset retrieval.
 """
 
+from __future__ import annotations
+
+import logging
 import pathlib
 from typing import TYPE_CHECKING, Any, TypeVar, cast, final, override
 
@@ -27,6 +30,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,  # pyright: ignore[reportUnknownVariableType]
 )
+from mime_enum import MimeType
 from PIL import Image
 from rest_framework import filters, serializers, viewsets
 from rest_framework.decorators import action
@@ -81,8 +85,13 @@ from .serializers import (
 if TYPE_CHECKING:
     from datetime import date
 
-    from django.contrib.auth.models import User
+    from BFD9000.conf import AuthUser, settings  # noqa: TC004
     from django.db.models.fields.files import FieldFile, ImageFieldFile
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
+
+logger = logging.getLogger(__name__)
 
 MAX_TIFF_PREVIEW_BYTES = 100 * 1024 * 1024
 MAX_TIFF_PREVIEW_PIXELS = 100_000_000
@@ -513,7 +522,13 @@ class DigitalRecordViewSet(viewsets.ModelViewSet[DigitalRecord]):  # pyright: ig
             return Response({"error": "No image file available"}, status=404)
         return FileResponse(source_file.open("rb"))
 
-    @extend_schema(responses={(200, "image/jpeg"): OpenApiTypes.BINARY})
+    # TODO: update the no thumbnail image to webp
+    @extend_schema(
+        responses={
+            (200, MimeType.IMAGE_WEBP): OpenApiTypes.BINARY,
+            (200, MimeType.IMAGE_JPEG): OpenApiTypes.BINARY,
+        }
+    )
     @action(detail=True, methods=["get"])
     def thumbnail(
         self,
@@ -534,14 +549,14 @@ class DigitalRecordViewSet(viewsets.ModelViewSet[DigitalRecord]):  # pyright: ig
 
         if file:
             try:
-                return FileResponse(file.open("rb"), content_type="image/jpeg")
+                return FileResponse(file.open("rb"), content_type=MimeType.IMAGE_WEBP)
             except Exception:  # noqa: S110
                 pass
 
         fallback_path: str | None = finders.find("archive/img/no-thumbnail.jpg")
         if fallback_path:
             with pathlib.Path(fallback_path).open("rb") as f:
-                return HttpResponse(f.read(), content_type="image/jpeg")
+                return HttpResponse(f.read(), content_type=MimeType.IMAGE_JPEG)
         return JsonResponse(
             {"error": "No thumbnail or fallback available."}, status=404
         )
@@ -675,9 +690,9 @@ def scan(request: Request) -> HttpResponse:
 
     """
     # We know the user is logged in due to the decorator
-    user: User = cast("User", request.user)
+    user: AuthUser = cast("AuthUser", request.user)
     full_name = user.get_full_name().strip()
-    operator_display = f"{full_name} ({user.username})" if full_name else user.username  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    operator_display = f"{full_name} ({user.username})" if full_name else user.username
     return render(
         request,
         "archive/scan.html",

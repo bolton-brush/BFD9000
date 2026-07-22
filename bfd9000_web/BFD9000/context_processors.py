@@ -1,10 +1,15 @@
 """Reports app version and script location to Django"""
 
+from __future__ import annotations
 
-from rest_framework.request import Request
+from typing import TYPE_CHECKING
+
 from typing_extensions import TypedDict
 
 from .settings import APP_VERSION, FORCE_SCRIPT_NAME
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class AppVer(TypedDict):

@@ -54,7 +54,7 @@ enhance the research community's access to consistent and standardized datasets.
 ## Code Cleanliness
 
 All python code in this repo should follow the ruff and basedpyright restrictions set
-within `ruff.toml` and `pyrightconfig.json`. Most restrictions apply, primarily for type
+within `ruff.toml` and `pyproject.toml`. Most restrictions apply, primarily for type
 safety, code cleanliness, documentation, and maintainability. It is recommended to use
 the `ruff` and `basedpyright` LSPs while developing within this repo in order to
 maintain these guidelines. Only use `#pyright: ignore[]` or `#noqa: ` comments if
@@ -162,6 +162,10 @@ be provided via the environment, a `.env` file, or via Docker Compose.
 | `CSRF_TRUSTED_ORIGINS`      | No             | Comma-separated list of trusted origins for Django's CSRF check (scheme required). | `https://example.com` or blank                |
 | `CAS_ENDPOINT`              | No             | The CAS login page to use for SSO                                                  | `https://login.case.edu/cas/` or blank        |
 | `PROXIED_URL`               | No             | The publically redirectable page stub for redirection from CAS (must be https)     | `https://localhost:4430` or blank             |
+| `BOX_DEVELOPER_TOKEN`       | No             | A Box developer token for accessing Box.com                                        | blank, must be set in dev if testing Box      |
+| `DEBUG_USE_BOX`             | No             | Enable to use Box in dev, otherwise a temporary directory will be made             | `False`, can be set to `True`                 |
+| `BOX_JWT_CONFIG_FILE`       | **Yes (prod)** | Path to a Box JWT configuration file for deployment                                | blank, must be set in production              |
+| `BOX_FOLDER_ID`             | **Yes (prod)** | The Box root folder ID for all Box storage needed by the application               | blank, must be set in production              |
 
 **For subpath deployments**, you must set `DJANGO_FORCE_SCRIPT_NAME` to your public path
 prefix (e.g., `/bfd9000`) to ensure all static/media/API/navigation work behind a proxy

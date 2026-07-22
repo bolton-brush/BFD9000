@@ -2,9 +2,11 @@
 # pyright: reportUnknownMemberType=false, reportUninitializedInstanceVariable=false, reportAny=false
 # ruff: noqa: S106
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
-from django.contrib.auth.models import User
+from BFD9000.conf import AuthUser
 from django.urls import reverse
 from rest_framework import status
 
@@ -24,7 +26,7 @@ class ValuesetTests(CleanupAPITestCase):
     """Validate valueset responses and filtering."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         collection: Collection
         collection2: Collection
         record_types_valueset: ValueSet
@@ -45,7 +47,7 @@ class ValuesetTests(CleanupAPITestCase):
     @override
     def setUp(self) -> None:
         # Create user for authentication
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="testuser", password="testpassword"
         )
         self.client.force_authenticate(user=self.user)

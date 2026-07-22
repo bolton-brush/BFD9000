@@ -2,7 +2,9 @@
 # pyright: reportUnknownMemberType=false, reportAttributeAccessIssue=false
 # ruff: noqa: S106
 
-from django.contrib.auth.models import User
+from __future__ import annotations
+
+from BFD9000.conf import AuthUser
 from django.test import TestCase
 from django.urls import reverse
 
@@ -12,7 +14,9 @@ class AuthViewTests(TestCase):
 
     def test_logout_get_redirects_without_error(self) -> None:
         """Test logging out redirects without erroring"""
-        user = User.objects.create_user(username="testuser", password="testpassword")
+        user = AuthUser.objects.create_user(
+            username="testuser", password="testpassword"
+        )
         self.client.force_login(user)
 
         response = self.client.get(reverse("logout"))
@@ -22,7 +26,9 @@ class AuthViewTests(TestCase):
 
     def test_logout_post_logs_user_out(self) -> None:
         """Test logging out redirects without erroring"""
-        user = User.objects.create_user(username="testuser", password="testpassword")
+        user = AuthUser.objects.create_user(
+            username="testuser", password="testpassword"
+        )
         self.client.force_login(user)
 
         response = self.client.post(reverse("logout"))

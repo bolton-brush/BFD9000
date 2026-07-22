@@ -17,11 +17,23 @@ environment across development and deployment.
 
 ## Running the Django Application
 
-1. Make sure to apply any database migrations:
+Do note, SSO will not work on non-https-proxied pages. An easy way to do this is by
+using the provided `docker-compose`, see below.
+
+1. Make sure to apply any database migrations and import data into the database:
 
    ```bash
    cd bfd9000_web
    python manage.py migrate
+
+   # import data into database
+   cd docs/collections_data
+   python ../../manage.py import_subjects bolton
+   python ../../manage.py import_valuesets
+   cd ../../
+
+   # or generate synthetic data to test with
+   python manage.py generate_synthetic_data
    ```
 
 1. ONLY IF YOU ARE DEVELOPING THE FRONTEND, install DaisyUI and run tailwindcss in a
@@ -99,15 +111,19 @@ load-podman
 ```
 
 This loads the built image into your load podman registry under the name of
-`localhost/edu.case.bfd9000:latest`.
+`localhost/bfd9000:build`.
 
-Run the container directly:
+Run the container directly (SSO will not work):
 
 ```bash
-podman run --rm -p 9000:9000 localhost/edu.case.bfd9000:latest
+podman run --rm -p 9000:9000 localhost/bfd9000:build
 ```
 
-Or use the provided compose file:
+Direct access at `http://localhost:9000` does not use the Caddy TLS proxy and is only
+intended for development that does not require CAS. Use the compose workflow below when
+testing login or any CAS callback behavior.
+
+Or use the provided compose file (Caddy will proxy, allowing SSO to work):
 
 ```bash
 # Copy the example env file and edit as needed
@@ -115,6 +131,12 @@ cd bfd9000_web
 cp dot-env.example .env
 podman-compose up
 ```
+
+The HTTPS proxy will be active at `https://localhost:4430`. `CAS_ENDPOINT` identifies
+the CAS server, while `PROXIED_URL` must match the externally visible application origin
+that CAS uses for service and callback URLs. The values in `dot-env.example` are ready
+for the local Caddy workflow; update them when the CAS server or externally visible
+application origin differs.
 
 For production, `nix build .#dockerImage` is called directly and uploaded to the OCI
 store. You may run this manually to dissect the built docker-image if there is confusion
@@ -131,6 +153,9 @@ python bfd9000_web/manage.py import_subjects lancaster --file LancasterDemograph
 
 Use `--dry-run` to validate without writing to the database. Use `--include-names` to
 populate first/last names when available (default is to leave names null).
+
+If running within a docker container, `podman cp` the files into the container, then
+`podman exec` in order to run the correct management commands
 
 ## Additional Information
 

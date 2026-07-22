@@ -2,12 +2,15 @@
 # pyright: reportUninitializedInstanceVariable=false, reportUnknownMemberType=false, reportAny=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 # ruff: noqa: S106 S101
 
+from __future__ import annotations
+
 import datetime
 import io
 import re
 from typing import TYPE_CHECKING, Any, override
 
-from django.contrib.auth.models import Permission, User
+from BFD9000.conf import AuthUser
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
@@ -16,7 +19,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from PIL import Image
 from rest_framework import status
-from rest_framework.response import Response
 
 from archive.constants import (
     SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
@@ -41,6 +43,9 @@ from archive.models import (
 
 from .base import CleanupAPITestCase
 
+if TYPE_CHECKING:
+    from rest_framework.response import Response
+
 # A valid Fernet key for use in tests that need ENDPOINT_CREDENTIALS_KEY.
 _TEST_FERNET_KEY = "pszJ39pBGFbjGZk8cM-MOzccZh0T0M8MTmVVitw4_8Y="
 
@@ -49,7 +54,7 @@ class RecordTests(CleanupAPITestCase):
     """Validate record creation, upload, and retrieval behavior."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         collection: Collection
         subject: Subject
         procedure: Coding
@@ -63,7 +68,7 @@ class RecordTests(CleanupAPITestCase):
     @override
     def setUp(self) -> None:
         # Create user for authentication
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="testuser",
             password="testpassword",
             first_name="Test",
@@ -260,7 +265,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
     """Tests for the identifier_str computed field on DigitalRecord API responses."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         collection: Collection
         subject: Subject
         encounter: Encounter
@@ -271,7 +276,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
 
     @override
     def setUp(self) -> None:
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="idstruser",
             password="testpassword",
         )
@@ -435,14 +440,14 @@ class ImagingStudyOperatorPrefetchTests(CleanupAPITestCase):
     """Tests ImagingStudy queries"""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         collection: Collection
         procedure: Coding
         record_type: Coding
 
     @override
     def setUp(self) -> None:
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="perfuser",
             password="pass",
             first_name="Perf",
@@ -484,7 +489,7 @@ class ImagingStudyOperatorPrefetchTests(CleanupAPITestCase):
             )
             self.studies.append(study)
             series = Series.objects.create(imaging_study=study)
-            operator = User.objects.create_user(
+            operator = AuthUser.objects.create_user(
                 username=f"operator{i}",
                 first_name=f"Op{i}",
                 last_name="X",

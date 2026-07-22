@@ -1,5 +1,7 @@
 """Admin configuration for archive models."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, cast, final, override
 
 from django.contrib import admin
@@ -28,7 +30,10 @@ from .models import (
 )
 
 if TYPE_CHECKING:
-    from BFD9000.settings import AUTH_USER_MODEL
+    from BFD9000.conf import AuthUser
+    from django.forms import ModelForm
+    from django.http import HttpRequest
+    from django_stubs_ext import FieldsetSpec
 
 
 class TimestampedAdmin(admin.ModelAdmin[TimestampedModel]):
@@ -59,8 +64,8 @@ class TimestampedAdmin(admin.ModelAdmin[TimestampedModel]):
 
         """
         if not change:  # Creating new object
-            obj.created_by = cast("AUTH_USER_MODEL", request.user)
-        obj.modified_by = cast("AUTH_USER_MODEL", request.user)
+            obj.created_by = cast("AuthUser", request.user)
+        obj.modified_by = cast("AuthUser", request.user)
         super().save_model(request, obj, form, change)
 
     @override

@@ -6,6 +6,8 @@ including nested routes for hierarchical resources
 (e.g., subjects -> encounters -> records).
 """
 
+from __future__ import annotations
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers

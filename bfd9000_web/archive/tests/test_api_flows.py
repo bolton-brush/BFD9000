@@ -2,9 +2,12 @@
 # pyright: reportUninitializedInstanceVariable=false, reportUnknownMemberType=false, reportAny=false
 # ruff: noqa: S106
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
-from django.contrib.auth.models import Permission, User
+from BFD9000.conf import AuthUser
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -25,7 +28,7 @@ class ApiFlowTests(CleanupAPITestCase):
     """Exercise the happy-path API workflow."""
 
     if TYPE_CHECKING:
-        user: User
+        user: AuthUser
         collection: Collection
         rt: Coding
         orient: Coding
@@ -36,7 +39,7 @@ class ApiFlowTests(CleanupAPITestCase):
     @override
     def setUp(self) -> None:
         # Create user for authentication
-        self.user = User.objects.create_user(
+        self.user = AuthUser.objects.create_user(
             username="testuser", password="testpassword"
         )
 

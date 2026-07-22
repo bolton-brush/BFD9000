@@ -1,7 +1,10 @@
 """UI permission tests for subject and encounter create buttons."""
 # ruff: noqa: S106
 
-from django.contrib.auth.models import Permission, User
+from __future__ import annotations
+
+from BFD9000.conf import AuthUser
+from django.contrib.auth.models import Permission
 from django.test import override_settings
 from django.urls import reverse
 
@@ -21,7 +24,7 @@ class PermissionUiTests(CleanupTestCase):
 
     def test_regular_user_does_not_see_create_buttons(self) -> None:
         """Ensures regular users are not able to create new subjects/encounters"""
-        user = User.objects.create_user(username="regular", password="testpassword")
+        user = AuthUser.objects.create_user(username="regular", password="testpassword")
         self.client.force_login(user)
 
         subjects_response = self.client.get(reverse("archive:subjects"))
@@ -34,7 +37,7 @@ class PermissionUiTests(CleanupTestCase):
 
     def test_curator_like_user_sees_create_buttons(self) -> None:
         """Ensures curators are not able to create new subjects/encounters"""
-        user = User.objects.create_user(username="curator", password="testpassword")
+        user = AuthUser.objects.create_user(username="curator", password="testpassword")
         add_subject = Permission.objects.get(codename="add_subject")
         add_encounter = Permission.objects.get(codename="add_encounter")
         user.user_permissions.add(add_subject, add_encounter)  # pyright: ignore[reportUnknownMemberType]

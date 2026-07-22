@@ -6,6 +6,11 @@
   bash,
   deps,
   file,
+  cacert,
+  lib,
+  vulkan-loader,
+  mesa,
+  stdenv,
   ...
 }:
 dockerTools.buildLayeredImage {
@@ -17,12 +22,13 @@ dockerTools.buildLayeredImage {
     bfd9000-app
     coreutils
     bash
+    cacert
   ]
   ++ deps;
 
   fakeRootCommands = ''
-    mkdir -p tmp ./var/tmp
-    chmod 1777 tmp ./var/tmp
+    mkdir -p tmp ./var/tmp media
+    chmod 1777 tmp ./var/tmp media
   '';
 
   config = {
@@ -38,7 +44,15 @@ dockerTools.buildLayeredImage {
 
     Env = [
       "PYTHONUNBUFFERED=1"
-      "LD_LIBRARY_PATH=${file}/lib"
+      "LD_LIBRARY_PATH=${
+        lib.makeLibraryPath [
+          vulkan-loader
+          mesa
+          file
+        ]
+      }"
+      "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+      "VK_ICD_FILENAMES=${mesa}/share/vulkan/icd.d/lvp_icd.${stdenv.hostPlatform.linuxArch}.json"
     ];
 
     WorkingDir = "/share/bfd9000_web";

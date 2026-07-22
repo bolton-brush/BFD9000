@@ -155,3 +155,7 @@ bfd9000_web/db
 
 # nix stuff
 result
+
+# Box support
+.box_token
+box_config.json
