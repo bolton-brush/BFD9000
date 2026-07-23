@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from io import BytesIO
-from typing import IO, TYPE_CHECKING, Any, BinaryIO, Protocol, cast, override
+from typing import IO, TYPE_CHECKING, Any, BinaryIO, Protocol, override
 
 from BFD9000.conf import settings as conf
 from bfd9020_ai_api_client import AuthenticatedClient, Client
@@ -113,7 +113,9 @@ def _get_api_client() -> Client:
     )
 
 
-def require_image(view_func: Callable[..., Any]) -> Callable[..., Any]:  # pyright: ignore[reportExplicitAny]
+def require_image(
+    view_func: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
     """Decorator that validates request.FILES['image']
 
     Args:
@@ -147,7 +149,7 @@ def require_image(view_func: Callable[..., Any]) -> Callable[..., Any]:  # pyrig
         )
 
         # Pass the extracted SDK File object directly to the view
-        return view_func(request, file, *args, **kwargs)  # pyright: ignore[reportAny]
+        return view_func(request, file, *args, **kwargs)
 
     return wrapper
 
@@ -190,28 +192,27 @@ def _handle_client_call[Body, Return: ReturnProtocol](
             status=500,
         )
 
-    response = response.unwrap()
-    parsed = response.parsed
+    response_ok = response.unwrap()
+    parsed = response_ok.parsed
 
     if (
-        response.status_code != HTTP_200_OK
+        response_ok.status_code != HTTP_200_OK
         or parsed is None
         or isinstance(parsed, HTTPValidationError)
     ):
         logger.error(
             "Classifier API error [%s]: Status %s",
             api_name,
-            response.status_code,
+            response_ok.status_code,
         )
         return JsonResponse(
             {
                 "error": "Classification backend returned an error",
-                "details": str(response.content, encoding="utf-8", errors="ignore"),
+                "details": str(response_ok.content, encoding="utf-8", errors="ignore"),
             },
-            status=response.status_code or 500,
+            status=response_ok.status_code or 500,
         )
 
-    parsed = cast("Return", parsed)
     return JsonResponse(parsed.to_dict(), status=200)
 
 

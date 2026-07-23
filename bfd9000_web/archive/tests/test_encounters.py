@@ -59,7 +59,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_create_encounter(self) -> None:
         """Should create encounter for subject"""
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         data = {
             "actual_period_start": "2020-01-01",
@@ -76,7 +77,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_create_encounter_missing_procedure(self) -> None:
         """Should return 400 if procedure_code is missing"""
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         data = {
             "actual_period_start": "2020-01-01"
@@ -87,7 +89,9 @@ class EncounterTests(CleanupAPITestCase):
 
     def test_create_encounter_invalid_subject(self) -> None:
         """Should return 404 for non-existent subject"""
-        url = reverse("archive:subject-encounters-list", kwargs={"subject_pk": 99999})
+        url = reverse(
+            "archive:api:subject-encounters-list", kwargs={"subject_pk": 99999}
+        )
         data = {
             "actual_period_start": "2020-01-01",
             "procedure_code": self.procedure.id,
@@ -99,7 +103,8 @@ class EncounterTests(CleanupAPITestCase):
         """Should list all encounters for a subject"""
         # Create encounters using the API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         _ = self.client.post(
             url,
@@ -113,7 +118,8 @@ class EncounterTests(CleanupAPITestCase):
         )
 
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -123,7 +129,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_list_encounters_sorted_by_date_desc(self) -> None:
         """Encounter list should be deterministically ordered newest-first."""
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         _ = self.client.post(
             url,
@@ -154,7 +161,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_global_encounter_list_with_subject_filter_is_ordered(self) -> None:
         """Global encounters endpoint should be ordered when paginated."""
         nested_url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         _ = self.client.post(
             nested_url,
@@ -173,7 +181,7 @@ class EncounterTests(CleanupAPITestCase):
             format="json",
         )
 
-        url = reverse("archive:encounter-list")
+        url = reverse("archive:api:encounter-list")
         response = self.client.get(
             url, {"subject": self.subject.id, "page": 1, "page_size": 20}
         )
@@ -193,7 +201,8 @@ class EncounterTests(CleanupAPITestCase):
         self.subject.identifiers.add(identifier)
 
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -206,7 +215,7 @@ class EncounterTests(CleanupAPITestCase):
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
         list_response = self.client.get(
-            reverse("archive:encounter-list"), {"subject": self.subject.id}
+            reverse("archive:api:encounter-list"), {"subject": self.subject.id}
         )
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(len(list_response.data["results"]), 1)
@@ -228,7 +237,8 @@ class EncounterTests(CleanupAPITestCase):
         self.subject.identifiers.add(identifier)
 
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -240,7 +250,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
-        encounter_list_url = reverse("archive:encounter-list")
+        encounter_list_url = reverse("archive:api:encounter-list")
 
         # Prefix match — 'SUB' should return the encounter
         response = self.client.get(encounter_list_url, {"search": "SUB"})
@@ -258,7 +268,8 @@ class EncounterTests(CleanupAPITestCase):
         """Should retrieve specific encounter details"""
         # Create encounter via API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -267,7 +278,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         encounter_id = create_response.data["id"]
 
-        url = reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], encounter_id)
@@ -276,7 +287,7 @@ class EncounterTests(CleanupAPITestCase):
 
     def test_get_encounter_not_found(self) -> None:
         """Should return 404 for non-existent encounter"""
-        url = reverse("archive:encounter-detail", kwargs={"pk": 99999})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": 99999})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -284,7 +295,8 @@ class EncounterTests(CleanupAPITestCase):
         """Should update encounter details"""
         # Create encounter via API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -293,7 +305,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         encounter_id = create_response.data["id"]
 
-        url = reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id})
         data = {"actual_period_start": "2020-02-01"}
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -303,7 +315,8 @@ class EncounterTests(CleanupAPITestCase):
         """Non-superuser should not delete encounter."""
         # Create encounter via API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -312,7 +325,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         encounter_id = create_response.data["id"]
 
-        url = reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -322,7 +335,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_superuser_can_delete_encounter(self) -> None:
         """Superuser should be able to delete encounter."""
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -337,7 +351,9 @@ class EncounterTests(CleanupAPITestCase):
             email="admin@example.com",
         )
         self.client.force_authenticate(user=superuser)
-        detail_url = reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+        detail_url = reverse(
+            "archive:api:encounter-detail", kwargs={"pk": encounter_id}
+        )
         response = self.client.delete(detail_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Encounter.objects.filter(pk=encounter_id).exists())
@@ -350,7 +366,8 @@ class EncounterTests(CleanupAPITestCase):
         self.client.force_authenticate(user=regular_user)
 
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         data = {
             "actual_period_start": "2020-01-01",
@@ -362,7 +379,8 @@ class EncounterTests(CleanupAPITestCase):
     def test_encounter_age_calculation(self) -> None:
         """Should automatically calculate age_at_encounter from subject birth_date"""
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         data = {
             "actual_period_start": "2015-06-15",
@@ -377,7 +395,8 @@ class EncounterTests(CleanupAPITestCase):
         """Should return 401/403 if not authenticated"""
         self.client.logout()
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         response = self.client.get(url)
         self.assertIn(
@@ -389,7 +408,8 @@ class EncounterTests(CleanupAPITestCase):
         """Encounter detail should include calculated age"""
         # Create encounter via API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         create_response = self.client.post(
             url,
@@ -398,7 +418,7 @@ class EncounterTests(CleanupAPITestCase):
         )
         encounter_id = create_response.data["id"]
 
-        url = reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Check if age_at_encounter is calculated
@@ -409,7 +429,8 @@ class EncounterTests(CleanupAPITestCase):
         """Should support pagination for encounter lists"""
         # Create multiple encounters via API
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         for i in range(25):
             # Use sequential dates across multiple months/years
@@ -426,7 +447,8 @@ class EncounterTests(CleanupAPITestCase):
 
         # Get first page
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": self.subject.id}
+            "archive:api:subject-encounters-list",
+            kwargs={"subject_pk": self.subject.id},
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -447,7 +469,7 @@ class EncounterTests(CleanupAPITestCase):
             procedure_occurrence_age=None,
         )
 
-        url = reverse("archive:encounter-detail", kwargs={"pk": encounter.id})
+        url = reverse("archive:api:encounter-detail", kwargs={"pk": encounter.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # 2000-01-01 to 2020-06-15 is about 20.45 years

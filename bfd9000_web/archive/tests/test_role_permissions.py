@@ -90,7 +90,7 @@ class RolePermissionTests(CleanupAPITestCase):
         self.client.force_authenticate(user=user)
 
         subject_response = self.client.post(
-            reverse("archive:subject-list"),
+            reverse("archive:api:subject-list"),
             {
                 "humanname_family": "Smith",
                 "humanname_given": "Jane",
@@ -103,7 +103,7 @@ class RolePermissionTests(CleanupAPITestCase):
 
         encounter_response = self.client.post(
             reverse(
-                "archive:subject-encounters-list",
+                "archive:api:subject-encounters-list",
                 kwargs={"subject_pk": self.subject.id},
             ),
             {
@@ -116,7 +116,7 @@ class RolePermissionTests(CleanupAPITestCase):
 
         record_response = self.client.post(
             reverse(
-                "archive:encounter-records-list",
+                "archive:api:encounter-records-list",
                 kwargs={"encounter_pk": self.encounter.id},
             ),
             {
@@ -145,7 +145,7 @@ class RolePermissionTests(CleanupAPITestCase):
         self.client.force_authenticate(user=user)
 
         create_subject = self.client.post(
-            reverse("archive:subject-list"),
+            reverse("archive:api:subject-list"),
             {
                 "humanname_family": "Curator",
                 "humanname_given": "Created",
@@ -158,20 +158,20 @@ class RolePermissionTests(CleanupAPITestCase):
         subject_id = create_subject.data["id"]
 
         update_subject = self.client.patch(
-            reverse("archive:subject-detail", kwargs={"pk": subject_id}),
+            reverse("archive:api:subject-detail", kwargs={"pk": subject_id}),
             {"humanname_family": "CuratorUpdated"},
             format="json",
         )
         self.assertEqual(update_subject.status_code, status.HTTP_200_OK)
 
         delete_subject = self.client.delete(
-            reverse("archive:subject-detail", kwargs={"pk": subject_id})
+            reverse("archive:api:subject-detail", kwargs={"pk": subject_id})
         )
         self.assertEqual(delete_subject.status_code, status.HTTP_403_FORBIDDEN)
 
         create_encounter = self.client.post(
             reverse(
-                "archive:subject-encounters-list",
+                "archive:api:subject-encounters-list",
                 kwargs={"subject_pk": self.subject.id},
             ),
             {
@@ -184,20 +184,20 @@ class RolePermissionTests(CleanupAPITestCase):
         encounter_id = create_encounter.data["id"]
 
         update_encounter = self.client.patch(
-            reverse("archive:encounter-detail", kwargs={"pk": encounter_id}),
+            reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id}),
             {"actual_period_start": "2021-03-04"},
             format="json",
         )
         self.assertEqual(update_encounter.status_code, status.HTTP_200_OK)
 
         delete_encounter = self.client.delete(
-            reverse("archive:encounter-detail", kwargs={"pk": encounter_id})
+            reverse("archive:api:encounter-detail", kwargs={"pk": encounter_id})
         )
         self.assertEqual(delete_encounter.status_code, status.HTTP_403_FORBIDDEN)
 
         created_record = self.client.post(
             reverse(
-                "archive:encounter-records-list",
+                "archive:api:encounter-records-list",
                 kwargs={"encounter_pk": self.encounter.id},
             ),
             {
@@ -214,7 +214,8 @@ class RolePermissionTests(CleanupAPITestCase):
 
         delete_record = self.client.delete(
             reverse(
-                "archive:digitalrecord-detail", kwargs={"pk": created_record.data["id"]}
+                "archive:api:digitalrecord-detail",
+                kwargs={"pk": created_record.data["id"]},
             )
         )
         self.assertEqual(delete_record.status_code, status.HTTP_403_FORBIDDEN)

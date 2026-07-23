@@ -19,7 +19,14 @@ from archive.constants import (
     SYSTEM_PROCEDURE,
     SYSTEM_RECORD_TYPE,
 )
-from archive.models import Coding, Collection, DigitalRecord, Encounter, Subject
+from archive.models import (
+    Address,
+    Coding,
+    Collection,
+    DigitalRecord,
+    Encounter,
+    Subject,
+)
 
 from .base import CleanupAPITestCase
 
@@ -91,7 +98,7 @@ class ApiFlowTests(CleanupAPITestCase):
     def test_full_flow(self) -> None:
         """Create subject, encounter, and record then verify downloads."""
         # 1. Create Subject
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         response = self.client.post(url, self.subject_data, format="json")
         if response.status_code != status.HTTP_201_CREATED:
             print(f"Subject creation failed: {response.status_code} - {response.data}")
@@ -100,7 +107,7 @@ class ApiFlowTests(CleanupAPITestCase):
 
         # 2. Create Encounter
         url = reverse(
-            "archive:subject-encounters-list", kwargs={"subject_pk": subject_id}
+            "archive:api:subject-encounters-list", kwargs={"subject_pk": subject_id}
         )
         encounter_data = {
             "actual_period_start": "2020-01-01",
@@ -116,7 +123,7 @@ class ApiFlowTests(CleanupAPITestCase):
 
         # 3. Upload Record
         url = reverse(
-            "archive:encounter-records-list", kwargs={"encounter_pk": encounter_id}
+            "archive:api:encounter-records-list", kwargs={"encounter_pk": encounter_id}
         )
 
         # Create dummy PNG
@@ -149,11 +156,11 @@ class ApiFlowTests(CleanupAPITestCase):
         self.assertEqual(record.record_type.code, self.rt.code)
 
         # 5. Verify Image Download
-        url = reverse("archive:digitalrecord-image", kwargs={"pk": record_id})
+        url = reverse("archive:api:digitalrecord-image", kwargs={"pk": record_id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # 6. Verify Thumbnail
-        url = reverse("archive:digitalrecord-thumbnail", kwargs={"pk": record_id})
+        url = reverse("archive:api:digitalrecord-thumbnail", kwargs={"pk": record_id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

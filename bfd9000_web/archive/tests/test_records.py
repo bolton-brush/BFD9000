@@ -170,7 +170,7 @@ class RecordTests(CleanupAPITestCase):
             "encounter": self.encounter.pk,
         }
         data.update(extra_fields)
-        url = reverse("archive:digitalrecord-list")
+        url = reverse("archive:api:digitalrecord-list")
         return self.client.post(url, data, format="multipart")
 
     def test_upload_with_device_creates_device_and_links_records(self) -> None:
@@ -222,7 +222,7 @@ class RecordTests(CleanupAPITestCase):
                 "test.png", self.image_content, content_type="image/png"
             )
             _ = self.client.post(
-                reverse("archive:digitalrecord-list"),
+                reverse("archive:api:digitalrecord-list"),
                 {
                     "file": upload,
                     "record_type": self.rt_lateral.code,
@@ -346,7 +346,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
 
     def test_identifier_str_present_in_detail(self) -> None:
         """identifier_str must appear in the detail endpoint response."""
-        url = reverse("archive:digitalrecord-list") + f"{self.digital_record.pk}/"
+        url = reverse("archive:api:digitalrecord-list") + f"{self.digital_record.pk}/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -354,7 +354,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
 
     def test_identifier_str_format(self) -> None:
         """identifier_str must follow <subject_id><record_type><sex><age><seq> schema"""
-        url = reverse("archive:digitalrecord-list") + f"{self.digital_record.pk}/"
+        url = reverse("archive:api:digitalrecord-list") + f"{self.digital_record.pk}/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -386,7 +386,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
 
     def test_identifier_str_in_list(self) -> None:
         """identifier_str must be present in the list endpoint results."""
-        url = reverse("archive:digitalrecord-list")
+        url = reverse("archive:api:digitalrecord-list")
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         results = resp.json()["results"]
@@ -400,7 +400,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
         self.encounter.procedure_occurrence_age = None
         self.encounter.actual_period_start = None
         self.encounter.save()
-        url = reverse("archive:digitalrecord-list") + f"{self.digital_record.pk}/"
+        url = reverse("archive:api:digitalrecord-list") + f"{self.digital_record.pk}/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -411,7 +411,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
         """Sex code F for female subjects."""
         self.subject.gender = "female"
         self.subject.save()
-        url = reverse("archive:digitalrecord-list") + f"{self.digital_record.pk}/"
+        url = reverse("archive:api:digitalrecord-list") + f"{self.digital_record.pk}/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
@@ -425,7 +425,7 @@ class RecordIdentifierStrTests(CleanupAPITestCase):
             series=self.series,
             record_type=self.rt_lateral,
         )
-        url = reverse("archive:digitalrecord-list") + f"{second_record.pk}/"
+        url = reverse("archive:api:digitalrecord-list") + f"{second_record.pk}/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
