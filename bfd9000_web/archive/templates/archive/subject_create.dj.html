@@ -1,105 +1,76 @@
 {% extends 'archive/base_index.dj.html' %}
-
 {% block content %}
-<div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
-    <div class="max-w-2xl mx-auto w-full">
-        <div class="prose prose-sm mb-6">
-            <h2 class="!mt-0">New Subject</h2>
-        </div>
-
-        <form id="subject-form" class="space-y-4">
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Subject Identifier</span>
-                </label>
-                <input
-                    type="text"
-                    id="identifier"
-                    name="identifier"
-                    class="input input-bordered w-full"
-                    placeholder="Subject Identifier (e.g., B0001)"
-                    required
-                />
+    <div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
+        <div class="max-w-2xl mx-auto w-full">
+            <div class="prose prose-sm mb-6">
+                <h2 class="!mt-0">New Subject</h2>
             </div>
-
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Collection</span>
-                </label>
-                <input
-                    type="text"
-                    id="collection"
-                    name="collection"
-                    class="input input-bordered w-full"
-                    placeholder="Collection Name"
-                    required
-                />
-            </div>
-
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Sex</span>
-                </label>
-                <select
-                    id="gender"
-                    name="gender"
-                    class="select select-bordered w-full"
-                    required
-                >
-                    <option disabled selected>Select Sex</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-
-            <!-- <div class="form-control w-full">
+            <form id="subject-form" class="space-y-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Subject Identifier</span>
+                    </label>
+                    <input type="text"
+                           id="identifier"
+                           name="identifier"
+                           class="input input-bordered w-full"
+                           placeholder="Subject Identifier (e.g., B0001)"
+                           required />
+                </div>
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Collection</span>
+                    </label>
+                    <input type="text"
+                           id="collection"
+                           name="collection"
+                           class="input input-bordered w-full"
+                           placeholder="Collection Name"
+                           required />
+                </div>
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Sex</span>
+                    </label>
+                    <select id="gender"
+                            name="gender"
+                            class="select select-bordered w-full"
+                            required>
+                        <option disabled selected>Select Sex</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <!-- <div class="form-control w-full">
                 <label class="label">
                     <span class="label-text">Date of Birth (Optional)</span>
                 </label>
-                <input
-                    type="date"
-                    id="date_of_birth"
-                    name="date_of_birth"
-                    class="input input-bordered w-full">
-            </div> -->
-
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text"
-                        >Dental Classification (Optional)</span
-                    >
-                </label>
-                <input
-                    type="text"
-                    id="dental_classification"
-                    name="dental_classification"
-                    class="input input-bordered w-full"
-                    placeholder="Dental Classification"
-                />
-            </div>
-
-            <div
-                id="error-message"
-                class="alert alert-error hidden"
-                role="alert"
-            >
-                <span id="error-text"></span>
-            </div>
-
-            <div class="flex gap-4 pt-4">
-                <button type="submit" class="btn btn-primary" id="submit-btn">
-                    Create Subject
-                </button>
-                <a href="{% url 'archive:subjects' %}" class="btn btn-ghost"
-                    >Cancel</a
-                >
-            </div>
-        </form>
+                <input type="date" id="date_of_birth" name="date_of_birth" class="input input-bordered w-full">
+</div> -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Dental Classification (Optional)</span>
+                    </label>
+                    <input type="text"
+                           id="dental_classification"
+                           name="dental_classification"
+                           class="input input-bordered w-full"
+                           placeholder="Dental Classification" />
+                </div>
+                <div id="error-message" class="alert alert-error hidden" role="alert">
+                    <span id="error-text"></span>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Create Subject</button>
+                    <a href="{% url 'archive:subjects' %}" class="btn btn-ghost">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-{% endblock %} {% block head %}
-<script>
+{% endblock %}
+{% block head %}
+    <script>
     document.addEventListener("DOMContentLoaded", () => {
         const form = document.getElementById("subject-form");
         const submitBtn = document.getElementById("submit-btn");
@@ -218,5 +189,5 @@
             }
         });
     });
-</script>
+    </script>
 {% endblock %}

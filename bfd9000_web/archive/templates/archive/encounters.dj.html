@@ -1,71 +1,58 @@
 {% extends 'archive/base_index.dj.html' %}
-
 {% block content %}
-<div class="flex-[1_1_0] flex flex-col overflow-auto">
-    <div class="bg-base-200 p-3 border-b border-base-300">
-        <div class="flex gap-2 items-center">
-            <input
-                type="text"
-                id="search-input"
-                placeholder="Search by subject identifier"
-                class="input input-bordered input-sm flex-1 max-w-md"
-            />
-            <button id="search-button" class="btn btn-sm btn-primary">
-                Search
-            </button>
-            <button id="clear-search-button" class="btn btn-sm btn-ghost">
-                Clear
-            </button>
+    <div class="flex-[1_1_0] flex flex-col overflow-auto">
+        <div class="bg-base-200 p-3 border-b border-base-300">
+            <div class="flex gap-2 items-center">
+                <input type="text"
+                       id="search-input"
+                       placeholder="Search by subject identifier"
+                       class="input input-bordered input-sm flex-1 max-w-md" />
+                <button id="search-button" class="btn btn-sm btn-primary">Search</button>
+                <button id="clear-search-button" class="btn btn-sm btn-ghost">Clear</button>
+            </div>
+        </div>
+        <div class="min-w-0 flex-[1_1_0] overflow-y-auto">
+            <table class="table table-xs md:table-sm lg:table-md table-pin-rows table-zebra">
+                <!-- head -->
+                <thead>
+                    <tr>
+                        <th>Encounter ID</th>
+                        <th>Subject</th>
+                        <th>Records</th>
+                        <th>Age</th>
+                    </tr>
+                </thead>
+                <tbody id="encounter_table_body">
+                    {% for _ in ' ' %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="flex w-full gap-4">
+                                    <div class="skeleton h-[1lh] w-1/3"></div>
+                                    <div class="skeleton h-[1lh] grow"></div>
+                                    <div class="skeleton h-[1lh] w-1/2"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="bg-base-300 p-2 flex items-center gap-3">
+            {% if perms.archive.add_encounter %}
+                <a href="{% url 'archive:encounter_create' %}"
+                   class="btn btn-primary rounded-full">New Encounter</a>
+            {% endif %}
+            <div class="grow"></div>
+            <span class="text-sm text-base-content/60">
+                <span id="encounter-count-badge"></span>
+                <span class="ml-1">encounters</span>
+            </span>
         </div>
     </div>
-    <div class="min-w-0 flex-[1_1_0] overflow-y-auto">
-        <table
-            class="table table-xs md:table-sm lg:table-md table-pin-rows table-zebra"
-        >
-            <!-- head -->
-            <thead>
-                <tr>
-                    <th>Encounter ID</th>
-                    <th>Subject</th>
-                    <th>Records</th>
-                    <th>Age</th>
-                </tr>
-            </thead>
-            <tbody id="encounter_table_body">
-                {% for _ in ' ' %}
-                <tr>
-                    <td colspan="4">
-                        <div class="flex w-full gap-4">
-                            <div class="skeleton h-[1lh] w-1/3"></div>
-                            <div class="skeleton h-[1lh] grow"></div>
-                            <div class="skeleton h-[1lh] w-1/2"></div>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="bg-base-300 p-2 flex items-center gap-3">
-        {% if perms.archive.add_encounter %}
-        <a
-            href="{% url 'archive:encounter_create' %}"
-            class="btn btn-primary rounded-full"
-            >New Encounter</a
-        >
-        {% endif %}
-        <div class="grow"></div>
-        <span class="text-sm text-base-content/60">
-            <span id="encounter-count-badge"></span>
-            <span class="ml-1">encounters</span>
-        </span>
-    </div>
-</div>
 {% endblock %}
-
 {% block head %}
-{{ block.super }}
-<script>
+    {{ block.super }}
+    <script>
     /**
      * Fetch encounters from the API
      * @param {Object} params - Query parameters
@@ -73,7 +60,7 @@
      * @param {string} params.subject - Filter by subject ID
      * @param {number} params.page - Page number (1-indexed)
      * @param {number} params.page_size - Number of items per page
-     * @returns {Promise<Object>} Response with { count, next, previous, results }
+     * @returns {Promise<object>} Response with { count, next, previous, results }
      */
     async function fetchEncounters({
         search = "",
@@ -194,5 +181,5 @@
         tableManager.init();
         attachSearchTooltip();
     });
-</script>
+    </script>
 {% endblock %}

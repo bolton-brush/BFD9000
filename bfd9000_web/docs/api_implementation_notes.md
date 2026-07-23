@@ -64,13 +64,13 @@ long-term to support historical context or environmental correlation.
 
 ### Spec vs Implementation
 
-| Spec Field         | Backend Field                 | Notes                                                     |
-| ------------------ | ----------------------------- | --------------------------------------------------------- |
-| `encounter_id`     | `encounter`                   | Integer PK                                                |
-| `subject_id`       | N/A                           | Must join through encounter.subject                       |
-| `file_size`        | N/A                           | Must get from `imaging_study.source_file` if available    |
-| `image_type`       | N/A                           | Must derive from `imaging_study.source_file` extension    |
-| `acquisition_date` | `imaging_study.scan_datetime` | Via related imaging study                                 |
+| Spec Field         | Backend Field                 | Notes                                                      |
+| ------------------ | ----------------------------- | ---------------------------------------------------------- |
+| `encounter_id`     | `encounter`                   | Integer PK                                                 |
+| `subject_id`       | N/A                           | Must join through encounter.subject                        |
+| `file_size`        | N/A                           | Must get from `imaging_study.source_file` if available     |
+| `image_type`       | N/A                           | Must derive from `imaging_study.source_file` extension     |
+| `acquisition_date` | `imaging_study.scan_datetime` | Via related imaging study                                  |
 | `thumbnail_url`    | `thumbnail.url`               | Backend-qualified storage URI; retrieve through API action |
 | `image_url`        | `source_file.url`             | Backend-qualified storage URI; retrieve through API action |
 

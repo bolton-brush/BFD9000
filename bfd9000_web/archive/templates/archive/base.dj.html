@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}BFD9000{% endblock %}</title>
-    {% load static %}
-    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
-    <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>
+            {% block title %}BFD9000{% endblock %}
+        </title>
+        {% load static %}
+        <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+        <link href="{% static 'css/output.css' %}" rel="stylesheet" type="text/css" />
+        <style>
         ::selection {
             background: oklch(60.6% 0.25 292.717 / 80%);
             opacity: 0.3;
@@ -19,15 +21,14 @@
         }
 
         {% block styles %}{% endblock %}
-    </style>
-    
-    <script>
+        </style>
+        <script>
       // Global for subpath hosting; used in nav and all JS
       window.script_name = "{{ script_name }}";
-    </script>
-    {% block head %}{% endblock %}
-</head>
-<body class="bg-neutral-content md:p-8 p-4 min-h-screen flex flex-col">
-    {% block body %}{% endblock %}
-</body>
+        </script>
+        {% block head %}{% endblock %}
+    </head>
+    <body class="bg-neutral-content md:p-8 p-4 min-h-screen flex flex-col">
+        {% block body %}{% endblock %}
+    </body>
 </html>

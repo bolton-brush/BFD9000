@@ -1,254 +1,266 @@
 {% extends 'archive/base_index.dj.html' %}
-
 {% block content %}
-<div class="flex-[1_1_0] flex flex-col overflow-auto p-6 gap-6">
-    <!-- Subject & Encounter Selection -->
-    <div class="card bg-base-200 shadow">
-        <div class="card-body">
-            <h2 class="card-title text-lg">Subject & Encounter</h2>
-            <div class="grid grid-cols-1 gap-4">
-
-                <!-- Subject Search Row -->
-                <div class="form-control flex flex-row items-center gap-4 flex-wrap">
-                    <div class="min-w-64">
-                        <input
-                            type="text"
-                            id="subject-id"
-                            placeholder="Search subject ID..."
-                            autocomplete="off"
-                            class="input input-bordered input-sm w-full"
-                        />
-                    </div>
-                    <div id="subject-info" class="text-sm text-base-content/70 hidden">
-                        <div class="alert alert-info !p-1 gap-2">
-                            <strong>ID:</strong> <span id="subject-official-id"></span>
-                            <strong>Collection:</strong> <span id="subject-collection"></span>
-                            <strong>Sex:</strong> <span id="subject-sex"></span>
-                            <strong>Encounters:</strong> <span id="subject-encounters"></span>
+    <div class="flex-[1_1_0] flex flex-col overflow-auto p-6 gap-6">
+        <!-- Subject & Encounter Selection -->
+        <div class="card bg-base-200 shadow">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Subject & Encounter</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Subject Search Row -->
+                    <div class="form-control flex flex-row items-center gap-4 flex-wrap">
+                        <div class="min-w-64">
+                            <input type="text"
+                                   id="subject-id"
+                                   placeholder="Search subject ID..."
+                                   autocomplete="off"
+                                   class="input input-bordered input-sm w-full" />
                         </div>
-                    </div>
-                    <div id="subject-error" class="text-sm text-error hidden"></div>
-                </div>
-
-                <!-- Physical Record Selection (shown when subject has physical records) -->
-                <div id="physical-record-row" class="form-control flex flex-row items-center gap-4 flex-wrap hidden">
-                    <div class="min-w-64">
-                        <select id="physical-record-select" class="select select-bordered select-sm w-full" disabled>
-                            <option value="">Select subject first...</option>
-                        </select>
-                    </div>
-                    <div id="physical-record-info" class="text-sm text-base-content/70 hidden">
-                        <div class="alert alert-info !p-1 gap-2">
-                            <strong>ID:</strong> <span id="physical-record-identifier-str"></span>
+                        <div id="subject-info" class="text-sm text-base-content/70 hidden">
+                            <div class="alert alert-info !p-1 gap-2">
+                                <strong>ID:</strong> <span id="subject-official-id"></span>
+                                <strong>Collection:</strong> <span id="subject-collection"></span>
+                                <strong>Sex:</strong> <span id="subject-sex"></span>
+                                <strong>Encounters:</strong> <span id="subject-encounters"></span>
+                            </div>
                         </div>
+                        <div id="subject-error" class="text-sm text-error hidden"></div>
                     </div>
-                    <div id="physical-record-error" class="text-sm text-error hidden"></div>
+                    <!-- Physical Record Selection (shown when subject has physical records) -->
+                    <div id="physical-record-row"
+                         class="form-control flex flex-row items-center gap-4 flex-wrap hidden">
+                        <div class="min-w-64">
+                            <select id="physical-record-select"
+                                    class="select select-bordered select-sm w-full"
+                                    disabled>
+                                <option value="">Select subject first...</option>
+                            </select>
+                        </div>
+                        <div id="physical-record-info" class="text-sm text-base-content/70 hidden">
+                            <div class="alert alert-info !p-1 gap-2">
+                                <strong>ID:</strong> <span id="physical-record-identifier-str"></span>
+                            </div>
+                        </div>
+                        <div id="physical-record-error" class="text-sm text-error hidden"></div>
+                    </div>
+                    <!-- Encounter Override (shown only when physical records exist) -->
+                    <div id="encounter-override-row" class="form-control hidden">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox"
+                                   id="encounter-override-checkbox"
+                                   class="checkbox checkbox-sm" />
+                            <span class="label-text text-sm text-base-content/70">Override: select encounter manually instead</span>
+                        </label>
+                    </div>
+                    <!-- Encounter Selection -->
+                    <div class="form-control flex flex-row items-center gap-4 flex-wrap">
+                        <div class="min-w-64">
+                            <select id="encounter-select"
+                                    class="select select-bordered select-sm w-full"
+                                    disabled>
+                                <option value="">Select subject first...</option>
+                            </select>
+                        </div>
+                        <div id="encounter-info" class="text-sm text-base-content/70 hidden">
+                            <div class="alert alert-info !p-1 gap-2">
+                                <strong>Age:</strong> <span id="encounter-age"></span>
+                                <strong>Records:</strong> <span id="encounter-records"></span>
+                            </div>
+                        </div>
+                        <div id="encounter-error" class="text-sm text-error hidden"></div>
+                    </div>
                 </div>
-
-                <!-- Encounter Override (shown only when physical records exist) -->
-                <div id="encounter-override-row" class="form-control hidden">
-                    <label class="label cursor-pointer justify-start gap-3">
-                        <input type="checkbox" id="encounter-override-checkbox" class="checkbox checkbox-sm" />
-                        <span class="label-text text-sm text-base-content/70">Override: select encounter manually instead</span>
+            </div>
+        </div>
+        <!-- File Upload -->
+        <div class="card bg-base-200 shadow">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Scan File</h2>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Upload Image (PNG, TIFF, or STL)</span>
+                    </label>
+                    <input type="file"
+                           id="file-upload"
+                           accept=".png,.tif,.tiff,.stl"
+                           class="file-input file-input-bordered file-input-sm w-full" />
+                    <label class="label">
+                        <span class="label-text-alt">Maximum file size: 100MB</span>
                     </label>
                 </div>
-
-                <!-- Encounter Selection -->
-                <div class="form-control flex flex-row items-center gap-4 flex-wrap">
-                    <div class="min-w-64">
-                        <select id="encounter-select" class="select select-bordered select-sm w-full" disabled>
-                            <option value="">Select subject first...</option>
-                        </select>
-                    </div>
-                    <div id="encounter-info" class="text-sm text-base-content/70 hidden">
-                        <div class="alert alert-info !p-1 gap-2">
-                            <strong>Age:</strong> <span id="encounter-age"></span>
-                            <strong>Records:</strong> <span id="encounter-records"></span>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                    <button id="scan-button" class="btn btn-sm btn-outline">Scan from Scanner</button>
+                    <button id="device-info-button" class="btn btn-sm btn-ghost">Device Info</button>
+                    <button id="calibrate-button" class="btn btn-sm btn-ghost">Calibrate</button>
+                    <button id="eject-button" class="btn btn-sm btn-ghost">Eject Film</button>
+                    <span id="scan-status" class="text-sm text-base-content/70"></span>
+                </div>
+                <div class="text-sm text-base-content/70 mt-2">
+                    <span class="font-semibold">Scanner:</span>
+                    <span id="scanner-model">Detecting device...</span>
+                </div>
+                <div id="file-preview" class="mt-2 hidden">
+                    <div class="alert py-2 px-3">
+                        <div>
+                            <div>
+                                <strong>File:</strong> <span id="file-name"></span>
+                            </div>
+                            <div>
+                                <strong>Size:</strong> <span id="file-size"></span>
+                            </div>
+                            <div>
+                                <strong>Type:</strong> <span id="file-type"></span>
+                            </div>
                         </div>
                     </div>
-                    <div id="encounter-error" class="text-sm text-error hidden"></div>
                 </div>
-
             </div>
         </div>
-    </div>
-
-    <!-- File Upload -->
-    <div class="card bg-base-200 shadow">
-        <div class="card-body">
-            <h2 class="card-title text-lg">Scan File</h2>
-            <div class="form-control">
-                <label class="label">
-                    <span class="label-text">Upload Image (PNG, TIFF, or STL)</span>
-                </label>
-                <input
-                    type="file"
-                    id="file-upload"
-                    accept=".png,.tif,.tiff,.stl"
-                    class="file-input file-input-bordered file-input-sm w-full"
-                />
-                <label class="label">
-                    <span class="label-text-alt">Maximum file size: 100MB</span>
-                </label>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 mt-2">
-                <button id="scan-button" class="btn btn-sm btn-outline">
-                    Scan from Scanner
-                </button>
-                <button id="device-info-button" class="btn btn-sm btn-ghost">
-                    Device Info
-                </button>
-                <button id="calibrate-button" class="btn btn-sm btn-ghost">
-                    Calibrate
-                </button>
-                <button id="eject-button" class="btn btn-sm btn-ghost">
-                    Eject Film
-                </button>
-                <span id="scan-status" class="text-sm text-base-content/70"></span>
-            </div>
-            <div class="text-sm text-base-content/70 mt-2">
-                <span class="font-semibold">Scanner:</span>
-                <span id="scanner-model">Detecting device...</span>
-            </div>
-            <div id="file-preview" class="mt-2 hidden">
-                <div class="alert py-2 px-3">
-                    <div>
-                        <div><strong>File:</strong> <span id="file-name"></span></div>
-                        <div><strong>Size:</strong> <span id="file-size"></span></div>
-                        <div><strong>Type:</strong> <span id="file-type"></span></div>
+        <!-- Record Metadata -->
+        <div class="card bg-base-200 shadow">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-lg">Record Metadata</h2>
+                    <div class="flex gap-2">
+                        <!-- Image manipulation buttons -->
+                        <button id="flip-button"
+                                class="btn btn-sm btn-ghost"
+                                disabled
+                                title="Flip horizontally">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.5"
+                                 stroke="currentColor"
+                                 class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                            Flip
+                        </button>
+                        <button id="rotate-left-button"
+                                class="btn btn-sm btn-ghost"
+                                disabled
+                                title="Rotate 90° counter-clockwise">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.5"
+                                 stroke="currentColor"
+                                 class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                            </svg>
+                            Rotate L
+                        </button>
+                        <button id="rotate-right-button"
+                                class="btn btn-sm btn-ghost"
+                                disabled
+                                title="Rotate 90° clockwise">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.5"
+                                 stroke="currentColor"
+                                 class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
+                            </svg>
+                            Rotate R
+                        </button>
+                        <div class="divider divider-horizontal mx-0"></div>
+                        <button id="ai-fill-button" class="btn btn-sm btn-secondary" disabled>Classify with AI</button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Record Metadata -->
-    <div class="card bg-base-200 shadow">
-        <div class="card-body">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="card-title text-lg">Record Metadata</h2>
-                <div class="flex gap-2">
-                    <!-- Image manipulation buttons -->
-                    <button id="flip-button" class="btn btn-sm btn-ghost" disabled title="Flip horizontally">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                        </svg>
-                        Flip
-                    </button>
-                    <button id="rotate-left-button" class="btn btn-sm btn-ghost" disabled title="Rotate 90° counter-clockwise">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                        </svg>
-                        Rotate L
-                    </button>
-                    <button id="rotate-right-button" class="btn btn-sm btn-ghost" disabled title="Rotate 90° clockwise">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
-                        </svg>
-                        Rotate R
-                    </button>
-                    <div class="divider divider-horizontal mx-0"></div>
-                    <button id="ai-fill-button" class="btn btn-sm btn-secondary" disabled>
-                        Classify with AI
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-[18rem_1fr] gap-4">
-                <div class="flex flex-col gap-2">
-                    <style>
+                <div class="grid grid-cols-1 lg:grid-cols-[18rem_1fr] gap-4">
+                    <div class="flex flex-col gap-2">
+                        <style>
                         label {
                             min-width: 8rem;
                         }
-                    </style>
-                    <!-- Record Type -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Record Type <span class="text-error">*</span></span>
-                        </label>
-                        <select id="record-type" class="select select-bordered select-sm font-mono">
-                            <option value="">Loading...</option>
-                        </select>
+                        </style>
+                        <!-- Record Type -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Record Type <span class="text-error">*</span></span>
+                            </label>
+                            <select id="record-type" class="select select-bordered select-sm font-mono">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <!-- Operator -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Operator</span>
+                            </label>
+                            <input type="text"
+                                   id="operator"
+                                   value="{{ operator_display|default:''|escape }}"
+                                   readonly
+                                   class="input input-bordered input-sm" />
+                        </div>
+                        <!-- Acquisition Date -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Acquisition Date</span>
+                            </label>
+                            <input type="date"
+                                   id="acquisition-date"
+                                   class="input input-bordered input-sm" />
+                        </div>
                     </div>
-
-                    <!-- Operator -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Operator</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="operator"
-                            value="{{ operator_display|default:''|escape }}"
-                            readonly
-                            class="input input-bordered input-sm"
-                        />
-                    </div>
-
-                    <!-- Acquisition Date -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Acquisition Date</span>
-                        </label>
-                        <input
-                            type="date"
-                            id="acquisition-date"
-                            class="input input-bordered input-sm"
-                        />
+                    <div class="flex flex-col">
+                        <div id="image-preview"
+                             class="w-full grow bg-base-100 border rounded flex flex-col items-center justify-center">
+                            <img id="uploaded-image"
+                                 src=""
+                                 alt="Uploaded Image Preview"
+                                 class="max-w-full max-h-80 object-contain" />
+                            <span id="no-image-text" class="text-base-content/60">No image uploaded.</span>
+                        </div>
+                        <script></script>
                     </div>
                 </div>
-                <div class="flex flex-col">
-                    <div id="image-preview" class="w-full grow bg-base-100 border rounded flex flex-col items-center justify-center">
-                        <img id="uploaded-image" src="" alt="Uploaded Image Preview" class="max-w-full max-h-80 object-contain" />
-                        <span id="no-image-text" class="text-base-content/60">No image uploaded.</span>
-                    </div>
-                    <script>
-
-                    </script>
+                <!-- AI Status Message -->
+                <div id="ai-status" class="mt-4 hidden"></div>
+            </div>
+        </div>
+        <!-- Submit Button -->
+        <div class="card bg-base-200 shadow">
+            <div class="card-body">
+                <div class="flex justify-between items-center">
+                    <div id="submit-status" class="text-sm"></div>
+                    <button id="submit-button" class="btn btn-primary" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke-width="1.5"
+                             stroke="currentColor"
+                             class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                        </svg>
+                        Submit Record
+                    </button>
                 </div>
             </div>
-
-            <!-- AI Status Message -->
-            <div id="ai-status" class="mt-4 hidden"></div>
         </div>
+        <dialog id="device-info-modal" class="modal">
+            <div class="modal-box max-w-3xl">
+                <h3 class="font-bold text-lg mb-2">Scanner Device Info</h3>
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <tbody id="device-info-body">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-action">
+                    <form method="dialog">
+                        <button class="btn">Close</button>
+                    </form>
+                </div>
+            </div>
+        </dialog>
     </div>
-
-    <!-- Submit Button -->
-    <div class="card bg-base-200 shadow">
-        <div class="card-body">
-            <div class="flex justify-between items-center">
-                <div id="submit-status" class="text-sm"></div>
-                <button id="submit-button" class="btn btn-primary" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Submit Record
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <dialog id="device-info-modal" class="modal">
-        <div class="modal-box max-w-3xl">
-            <h3 class="font-bold text-lg mb-2">Scanner Device Info</h3>
-            <div class="overflow-x-auto">
-                <table class="table table-sm">
-                    <tbody id="device-info-body"></tbody>
-                </table>
-            </div>
-            <div class="modal-action">
-                <form method="dialog">
-                    <button class="btn">Close</button>
-                </form>
-            </div>
-        </div>
-    </dialog>
-</div>
 {% endblock %}
-
 {% block head %}
-{{ block.super }}
-<script>
+    {{ block.super }}
+    <script>
     // ========================================
     // STATE MANAGEMENT
     // ========================================
@@ -1650,5 +1662,5 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
-</script>
+    </script>
 {% endblock %}
