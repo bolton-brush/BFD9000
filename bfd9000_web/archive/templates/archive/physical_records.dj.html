@@ -1,4 +1,6 @@
-{% extends 'archive/base_index.html' %} {% block content %}
+{% extends 'archive/base_index.dj.html' %}
+
+{% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-auto">
     <div class="bg-base-200 p-3 border-b border-base-300">
         <div class="flex gap-2 items-center">
@@ -55,14 +57,20 @@
         </span>
     </div>
 </div>
-{% endblock %} {% block head %} {{ block.super }}
+{% endblock %}
+
+{% block head %}
+{{ block.super }}
 <script>
     function formatAge(ageYears) {
-        if (ageYears === null || ageYears === undefined) return '-';
+        if (ageYears === null || ageYears === undefined) return "-";
         const wholeYears = Math.floor(ageYears);
         let months = Math.round((ageYears - wholeYears) * 12);
         let years = wholeYears;
-        if (months === 12) { years += 1; months = 0; }
+        if (months === 12) {
+            years += 1;
+            months = 0;
+        }
         return `${years}y ${months}m`;
     }
 
@@ -82,7 +90,7 @@
             }
         }
 
-        const response = await fetch((window.script_name || '') + `/api/physical-records/?${urlParams}`);
+        const response = await fetch("{% url 'archive:api:physicalrecord-list' %}?" + urlParams);
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
@@ -91,10 +99,14 @@
 
     function formatLocations(locations) {
         if (!locations || locations.length === 0) return "-";
-        return locations.map(loc => {
-            const parts = [loc.cabinet, loc.shelf, loc.slot].filter(Boolean);
-            return parts.join("-") || loc.raw || "(unknown)";
-        }).join(", ");
+        return locations
+            .map((loc) => {
+                const parts = [loc.cabinet, loc.shelf, loc.slot].filter(
+                    Boolean,
+                );
+                return parts.join("-") || loc.raw || "(unknown)";
+            })
+            .join(", ");
     }
 
     const tableManager = new InfiniteScrollTableManager({
@@ -111,7 +123,10 @@
                 idCell.classList.add("font-mono");
 
                 const recordType = document.createElement("td");
-                recordType.textContent = record.record_type?.display || record.record_type?.code || "-";
+                recordType.textContent =
+                    record.record_type?.display ||
+                    record.record_type?.code ||
+                    "-";
                 if (record.record_type?.code) {
                     recordType.title = record.record_type.code;
                 }
@@ -119,9 +134,11 @@
                 const subject = document.createElement("td");
                 const subjectBtn = document.createElement("button");
                 subjectBtn.className = "btn btn-soft btn-xs";
-                subjectBtn.textContent = record.subject_identifier || record.subject_id || "-";
+                subjectBtn.textContent =
+                    record.subject_identifier || record.subject_id || "-";
                 subjectBtn.onclick = () =>
-                    (window.location.href = (window.script_name || '') + `/subject/${record.subject_id}/`);
+                    (window.location.href =
+                        "{% url 'archive:subject_detail' subject_id='0' %}".replace('0', record.subject_id));
                 subject.appendChild(subjectBtn);
 
                 const encounter = document.createElement("td");
@@ -143,7 +160,16 @@
                 notes.classList.add("max-w-xs", "truncate");
                 notes.title = record.notes || "";
 
-                row.replaceChildren(idCell, recordType, subject, encounter, acquired, operator, locations, notes);
+                row.replaceChildren(
+                    idCell,
+                    recordType,
+                    subject,
+                    encounter,
+                    acquired,
+                    operator,
+                    locations,
+                    notes,
+                );
                 return row;
             });
         },

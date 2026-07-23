@@ -23,23 +23,29 @@
           inherit system;
         };
         python = pkgs.python313;
-        workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./bfd9000_web; };
+        hacks = pkgs.callPackage inputs.pyproject.build.hacks { };
+        workspace = inputs.uv2nix.lib.workspace.loadWorkspace {
+          workspaceRoot = ./bfd9000_web;
+        };
         overlay = workspace.mkPyprojectOverlay {
           sourcePreference = "wheel";
         };
         bfd9020-sdk = inputs.bfd9020.packages.${system}.app.client-sdk;
+        bfd9020-sdk-overlay = final: prev: {
+          # Adapt the standard Nixpkgs derivation into the uv2nix set!
+          bfd9020-ai-api-client = hacks.nixpkgsPrebuilt {
+            from = bfd9020-sdk;
+            prev = prev.bfd9020-ai-api-client; # preserves dependency linkages in the graph
+          };
+        };
         pythonBase = pkgs.callPackage inputs.pyproject.build.packages {
           inherit python;
-        };
-        clientSdkOverlay = final: prev: {
-          # Swap the locked package with the Nix derivation from the upstream repo
-          bfd9020-ai-api-client = bfd9020-sdk;
         };
         pythonSet = pythonBase.overrideScope (
           pkgs.lib.composeManyExtensions [
             inputs.pybuild.overlays.wheel
             overlay
-            clientSdkOverlay
+            bfd9020-sdk-overlay
           ]
         );
         venv = pythonSet.mkVirtualEnv "venv" workspace.deps.default;
@@ -74,6 +80,12 @@
             shellcheck.enable = true;
             shfmt.enable = true;
             nixfmt.enable = true;
+            # Django html formatter
+            djlint = {
+              enable = true;
+              # Includes all .html files by default, but you can override includes if needed:
+              includes = [ "*.dj.html" ];
+            };
           };
           settings.formatter.shellcheck.excludes = [
             ".envrc"

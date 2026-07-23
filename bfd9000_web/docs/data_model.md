@@ -431,7 +431,7 @@ B001LM01
 
 - **UI display**: shown in the records list as the human-readable label for each record
   button (fallback to `record.id` if absent).
-- **Download filenames**: the download button in `record_detail.html` uses
+- **Download filenames**: the download button in `record_detail.dj.html` uses
   `identifier_str` as the base filename (e.g. `B001LM08y06m.png`).
 - **API search**: the stored Bolton record ID (`identifiers__value`) enables
   `?search=r011l` on the `/api/records/` and `/api/physical-records/` endpoints.

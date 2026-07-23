@@ -583,7 +583,7 @@ def index(request: Request) -> HttpResponse:
         The index page
 
     """
-    return render(request, "archive/index.html")
+    return render(request, "archive/index.dj.html")
 
 
 @login_required
@@ -594,7 +594,7 @@ def subjects(request: Request) -> HttpResponse:
         The subject list page
 
     """
-    return render(request, "archive/subjects.html")
+    return render(request, "archive/subjects.dj.html")
 
 
 @login_required
@@ -605,7 +605,7 @@ def subject_detail(request: Request, subject_id: int) -> HttpResponse:
         The subject detail page
 
     """
-    return render(request, "archive/subject_detail.html", {"subject_id": subject_id})
+    return render(request, "archive/subject_detail.dj.html", {"subject_id": subject_id})
 
 
 @login_required
@@ -618,7 +618,7 @@ def subject_create(request: Request) -> HttpResponse:
     """
     return render(
         request,
-        "archive/subject_create.html",
+        "archive/subject_create.dj.html",
         {
             "bolton_identifier_system": SYSTEM_IDENTIFIER_BOLTON_SUBJECT,
             "lancaster_identifier_system": SYSTEM_IDENTIFIER_LANCASTER_SUBJECT,
@@ -634,7 +634,7 @@ def encounters(request: Request) -> HttpResponse:
         The encounter list page
 
     """
-    return render(request, "archive/encounters.html")
+    return render(request, "archive/encounters.dj.html")
 
 
 @login_required
@@ -645,7 +645,7 @@ def encounter_create(request: Request) -> HttpResponse:
         The encounter creation form
 
     """
-    return render(request, "archive/encounter_create.html")
+    return render(request, "archive/encounter_create.dj.html")
 
 
 @login_required
@@ -656,7 +656,7 @@ def records(request: Request) -> HttpResponse:
         The record list page
 
     """
-    return render(request, "archive/records.html")
+    return render(request, "archive/records.dj.html")
 
 
 @login_required
@@ -667,7 +667,7 @@ def physical_records(request: Request) -> HttpResponse:
         The physical record list page
 
     """
-    return render(request, "archive/physical_records.html")
+    return render(request, "archive/physical_records.dj.html")
 
 
 @login_required
@@ -678,7 +678,7 @@ def record_detail(request: Request, record_id: str) -> HttpResponse:
         The record detail page
 
     """
-    return render(request, "archive/record_detail.html", {"record_id": record_id})
+    return render(request, "archive/record_detail.dj.html", {"record_id": record_id})
 
 
 @login_required
@@ -695,7 +695,7 @@ def scan(request: Request) -> HttpResponse:
     operator_display = f"{full_name} ({user.username})" if full_name else user.username
     return render(
         request,
-        "archive/scan.html",
+        "archive/scan.dj.html",
         {
             "operator_display": operator_display,
             "scanner_api_base": settings.SCANNER_API_BASE,

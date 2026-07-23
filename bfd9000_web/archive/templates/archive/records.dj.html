@@ -1,4 +1,6 @@
-{% extends 'archive/base_index.html' %} {% block content %}
+{% extends 'archive/base_index.dj.html' %}
+
+{% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-auto">
     <div class="bg-base-200 p-3 border-b border-base-300">
         <div class="flex gap-2 items-center">
@@ -48,7 +50,11 @@
         </table>
     </div>
     <div class="bg-base-300 p-2 flex items-center gap-3">
-        <a href="{% url 'archive:record_create' %}" class="btn btn-primary rounded-full">Add Record</a>
+        <a
+            href="{% url 'archive:record_create' %}"
+            class="btn btn-primary rounded-full"
+            >Add Record</a
+        >
         <div class="grow"></div>
         <span class="text-sm text-base-content/60">
             <span id="record-count-badge"></span>
@@ -56,7 +62,10 @@
         </span>
     </div>
 </div>
-{% endblock %} {% block head %} {{ block.super }}
+{% endblock %}
+
+{% block head %}
+{{ block.super }}
 <script>
     // ========================================
     // DATA LAYER - Real API Implementation
@@ -89,7 +98,7 @@
             }
         }
 
-        const response = await fetch((window.script_name || '') + `/api/records/?${urlParams}`);
+        const response = await fetch("{% url 'archive:api:digitalrecord-list' %}?" + urlParams);
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
@@ -146,13 +155,17 @@
                 recordBtn.textContent = record.identifier_str || record.id;
                 recordBtn.onclick = () => {
                     // Navigate to record detail page
-                    window.location.href = (window.script_name || '') + `/records/${record.id}/`;
+                    window.location.href =
+                      "{% url 'archive:record_detail' record_id='0' %}".replace('0', record.id);
                 };
                 recordId.appendChild(recordBtn);
 
                 // Record Type column (display value with code as tooltip)
                 const recordType = document.createElement("td");
-                recordType.textContent = record.record_type?.display || record.record_type?.code || "-";
+                recordType.textContent =
+                    record.record_type?.display ||
+                    record.record_type?.code ||
+                    "-";
                 if (record.record_type?.code) {
                     recordType.title = record.record_type.code;
                 }
@@ -174,9 +187,11 @@
                 const subject = document.createElement("td");
                 const subjectBtn = document.createElement("button");
                 subjectBtn.className = "btn btn-soft btn-xs";
-                subjectBtn.textContent = record.subject_identifier || record.subject_id || "-";
+                subjectBtn.textContent =
+                    record.subject_identifier || record.subject_id || "-";
                 subjectBtn.onclick = () =>
-                    (window.location.href = (window.script_name || '') + `/encounters/?subject=${record.subject_id}`);
+                    (window.location.href =
+                        "{% url 'archive:encounters' %}?subject=" + record.subject_id);
                 subject.appendChild(subjectBtn);
 
                 // Encounter ID column with button — filters records for this encounter
@@ -187,7 +202,8 @@
                 encounterBtn.onclick = () => {
                     const params = new URLSearchParams();
                     params.set("encounter", record.encounter_id);
-                    window.location.href = (window.script_name || '') + `/records/?${params.toString()}`;
+                    window.location.href =
+                      "{% url 'archive:records' %}?" + params.toString();;
                 };
                 encounter.appendChild(encounterBtn);
 
@@ -204,7 +220,7 @@
                     age,
                     subject,
                     encounter,
-                    fileSize
+                    fileSize,
                 );
                 return row;
             });

@@ -30,11 +30,11 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1784699826,
-        "narHash": "sha256-qUyP+3jVmcvNAdDilQesLCx6odwY5yZ4fwYdEAhKI9o=",
+        "lastModified": 1784827286,
+        "narHash": "sha256-bcnEx0DE8knSzyKmloCQtAZEElJfKN0Y8j6ncIxE5iE=",
         "owner": "bolton-brush",
         "repo": "BFD9020",
-        "rev": "0b31a591ec266eba692f277458017fcbc1aa2d74",
+        "rev": "925855631905c9e5da951628fb161605350ff7e0",
         "type": "github"
       },
       "original": {

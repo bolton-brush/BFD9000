@@ -1,4 +1,6 @@
-{% extends 'archive/base_index.html' %} {% block content %}
+{% extends 'archive/base_index.dj.html' %}
+
+{% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-auto">
     <div class="bg-base-200 p-3 border-b border-base-300">
         <div class="flex gap-2 items-center">
@@ -50,7 +52,8 @@
         <a
             href="{% url 'archive:subject_create' %}"
             class="btn btn-primary rounded-full"
-            >New Subject</a>
+            >New Subject</a
+        >
         {% endif %}
         <div class="grow"></div>
         <span class="text-sm text-base-content/60">
@@ -59,7 +62,10 @@
         </span>
     </div>
 </div>
-{% endblock %} {% block head %} {{ block.super }}
+{% endblock %}
+
+{% block head %}
+{{ block.super }}
 <script>
     // ========================================
     // DATA LAYER - Real API Implementation
@@ -101,7 +107,7 @@
             params.set("search", search.trim());
         }
 
-        const response = await fetch((window.script_name || '') + `/api/subjects/?${params}`);
+        const response = await fetch("{% url 'archive:api:subject-list' %}?" + params);
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
@@ -125,9 +131,11 @@
                 const identifier = document.createElement("td");
                 const subjectBtn = document.createElement("button");
                 subjectBtn.className = "btn btn-soft btn-primary btn-xs";
-                subjectBtn.textContent = subject.subject_identifier || subject.id;
+                subjectBtn.textContent =
+                    subject.subject_identifier || subject.id;
                 subjectBtn.onclick = () => {
-                    window.location.href = (window.script_name || '') + `/subject/${subject.id}/`;
+                    window.location.href =
+                      "{% url 'archive:subject_detail' subject_id='0' %}".replace('0', subject.id));
                 };
                 identifier.appendChild(subjectBtn);
 
@@ -137,7 +145,8 @@
                 encountersBtn.className = "btn btn-soft btn-xs";
                 encountersBtn.textContent = subject.encounter_count || 0;
                 encountersBtn.onclick = () =>
-                    (window.location.href = (window.script_name || '') + `/encounters/?subject=${subject.id}`);
+                    (window.location.href =
+                      "{% url 'archive:encounters' %}?subject=" + subject.id);
                 encounters.appendChild(encountersBtn);
 
                 // Records column with default button
@@ -146,7 +155,8 @@
                 recordsBtn.className = "btn btn-soft btn-xs";
                 recordsBtn.textContent = subject.record_count || 0;
                 recordsBtn.onclick = () =>
-                    (window.location.href = (window.script_name || '') + `/records/?subject=${subject.id}`);
+                    (window.location.href =
+                      "{% url 'archive:records' %}?subject=" + subject.id);
                 records.appendChild(recordsBtn);
 
                 // Dental Classification column (no button)
@@ -163,7 +173,7 @@
                     encounters,
                     records,
                     dentalClassification,
-                    collection
+                    collection,
                 );
                 return row;
             });

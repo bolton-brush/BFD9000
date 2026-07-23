@@ -157,7 +157,7 @@ bfd9000_web/db
 result
 result-*
 out
-.dummy-deps
+.dummy_deps
 
 # Box support
 .box_token

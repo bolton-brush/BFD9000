@@ -7,8 +7,6 @@ from typing import final
 
 from django.apps import AppConfig
 
-# from .media_upload import media_upload_worker
-
 logger = logging.getLogger(__name__)
 
 

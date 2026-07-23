@@ -1,4 +1,4 @@
-{% extends 'archive/base_index.html' %}
+{% extends 'archive/base_index.dj.html' %}
 
 {% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-auto p-6 gap-6">
@@ -280,7 +280,7 @@
             search: query,
             page_size: '20',
         });
-        const response = await fetch((window.script_name || '') + `/api/subjects/?${params}`);
+        const response = await fetch("{% url 'archive:api:subject-list' %}?" + params);
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
@@ -289,7 +289,7 @@
     }
 
     async function fetchEncounter(encounterId) {
-        const response = await fetch((window.script_name || '') + `/api/encounters/${encounterId}/`);
+        const response = await fetch("{% url 'archive:api:encounter-detail' pk='0' %}".replace('0', encounterId));
         if (!response.ok) {
             if (response.status === 404) {
                 throw new Error('Encounter not found');
@@ -300,7 +300,7 @@
     }
 
     async function fetchEncountersForSubject(subjectId) {
-        const response = await fetch((window.script_name || '') + `/api/encounters/?subject=${subjectId}`);
+        const response = await fetch(`{% url 'archive:api:encounter-list' %}?subject=${subjectId}`);
         if (!response.ok) {
             throw new Error(`Failed to fetch encounters: ${response.status}`);
         }
@@ -309,7 +309,7 @@
     }
 
     async function fetchPhysicalRecordsForSubject(subjectId) {
-        const response = await fetch((window.script_name || '') + `/api/subjects/${subjectId}/physical-records/`);
+        const response = await fetch("{% url 'archive:api:subject-physical-records-list' subject_pk='0' %}".replace('0', subjectId));
         if (!response.ok) {
             throw new Error(`Failed to fetch physical records: ${response.status}`);
         }
@@ -318,7 +318,7 @@
     }
 
     async function fetchValueset(type) {
-        const response = await fetch((window.script_name || '') + `/api/valuesets/?type=${type}`);
+        const response = await fetch("{% url 'archive:api:valuesets-list' %}?type=" + type);
         if (!response.ok) {
             throw new Error(`Failed to fetch valueset: ${type}`);
         }
@@ -328,7 +328,7 @@
     async function createRecord(encounterId, formData) {
         const csrftoken = getCsrfToken();
 
-        const response = await fetch((window.script_name || '') + `/api/encounters/${encounterId}/records/`, {
+        const response = await fetch("{% url 'archive:api:encounter-records-list' encounter_pk='0' %}".replace('0', encounterId), {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrftoken
@@ -346,7 +346,7 @@
     async function createRecordViaPhysicalRecord(physicalRecordId, formData) {
         const csrftoken = getCsrfToken();
         formData.append('physical_record', physicalRecordId);
-        const response = await fetch((window.script_name || '') + `/api/records/`, {
+        const response = await fetch("{% url 'archive:api:digitalrecord-list' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrftoken
@@ -371,7 +371,7 @@
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch((window.script_name || '') + '/api/scan/tiff-preview/', {
+        const response = await fetch("{% url 'archive:scan_tiff_preview' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCsrfToken(),
@@ -402,9 +402,13 @@
         const formData = new FormData();
         formData.append('image', file);
 
-        const aiInfoUrl = `${AI_BASE_URL}/xray-info`;
+        const csrftoken = getCsrfToken();
+        const aiInfoUrl = "{% url 'archive:api:scan:get_xray_info' %}";
         const resp = await fetch(aiInfoUrl, {
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
             body: formData
         });
         if (!resp.ok) {
@@ -412,29 +416,8 @@
             throw new Error(`AI service error: ${aiInfoUrl} - ${resp.status} - ${errorText}`);
         }
         const result = await resp.json();
-        console.log(result);
 
-        const formData2 = new FormData();
-        formData2.append('image', file);
-
-        const aiClassUrl = `${AI_BASE_URL}/xray-class`;
-        const resp2 = await fetch(aiClassUrl, {
-            method: 'POST',
-            body: formData2
-        });
-        if (!resp2.ok) {
-            const errorText = await resp2.text();
-            throw new Error(`AI service error: ${aiClassUrl} - ${resp2.status} - ${errorText}`);
-        }
-        const r = await resp2.json();
-        console.log(r);
-
-        return {
-            ...result,
-            class_code: r.code,
-            class_prediction: r.prediction,
-            class_probability: r.probability,
-        };
+        return result;
     }
 
     async function performScannerScan() {
@@ -1409,27 +1392,24 @@
             const result = await queryAI(state.aiFile);
 
             const recordTypeSelect = document.getElementById('record-type');
-            const aiCode = result.class_code || result.code;
+            const aiCode = result.prediction;
             if (aiCode) {
                 const option = state.valuesets.record_types.find(x => x.id === aiCode);
                 if (option) {
                     recordTypeSelect.value = aiCode;
                 }
-            } else if (result.type_prediction) {
-                const option = state.valuesets.record_types.find(x => x.display === result.type_prediction);
-                if (option) {
-                    recordTypeSelect.value = option.id;
-                }
             } else {
                 showAIStatus('AI classification failed: no valid code returned. Please classify manually.', true);
             }
 
+            additionalInfo = result.additional_info
+
             // Replace transformOps with AI result (do not append — AI resets orientation).
             // Note: result.rotation can be 0 (falsy) but still valid, so check for null explicitly.
-            if (result.rotation !== null && result.rotation !== undefined) {
+            if (additionalInfo !== null) {
                 state.transformOps = [{
-                    rotation: result.rotation || 0,
-                    flip: result.flip || false,
+                    rotation: additionalInfo.rotation || 0,
+                    flip: additionalInfo.flip || false,
                 }];
             } else {
                 // AI returned no orientation data — reset transforms and show clean base
@@ -1441,11 +1421,12 @@
                 alert('Failed to transform image: ' + error.message);
             }
 
-            const confidence = (result.class_probability ?? result.type_probability)?.toFixed(2) ?? 'N/A';
-            const classification = result.class_code || result.type_prediction || 'N/A';
-            const rotation = result.rotation !== null && result.rotation !== undefined ? `${result.rotation}°` : 'none';
-            const flip = result.flip ? 'yes' : 'no';
-            showAIStatus(`AI: class=${classification} conf=${confidence} rotation=${rotation} flip=${flip}`);
+            const confidence = result.probability?.toFixed(2) ?? 'N/A';
+            const rot_confidence = additionalInfo?.probability?.toFixed(2) ?? 'N/A';
+            const classification = aiCode || 'N/A';
+            const rotation = additionalInfo !== null && additionalInfo.rotation !== null ? `${additionalInfo.rotation}°` : 'none';
+            const flip = additionalInfo !== null && additionalInfo.flip ? 'yes' : 'no';
+            showAIStatus(`AI: class=${classification} conf=${confidence} rot_conf=${rot_confidence} rotation=${rotation} flip=${flip}`);
             updateSubmitButton();
         } catch (error) {
             showAIStatus('AI processing failed: ' + error.message, true);
@@ -1505,7 +1486,7 @@
 
             // Redirect to record detail page after 1 second
             setTimeout(() => {
-                window.location.href = (window.script_name || '') + `/records/${record.id}/`;
+                window.location.href = "{% url 'archive:record_detail' record_id='0' %}".replace('0', record.id);
             }, 1000);
         } catch (error) {
             console.error(error);

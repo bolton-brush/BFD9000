@@ -65,7 +65,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
     """
     next_url = request.GET.get("next", "")
-    return render(request, "archive/login.html", {"next": next_url})
+    return render(request, "archive/login.dj.html", {"next": next_url})
 
 
 urlpatterns = [
@@ -73,7 +73,7 @@ urlpatterns = [
     path("login/", login_view, name="login"),
     path(
         "login/local/",
-        auth_views.LoginView.as_view(template_name="archive/login_local.html"),
+        auth_views.LoginView.as_view(template_name="archive/login_local.dj.html"),
         name="login_local",
     ),
     path("logout/", logout_view, name="logout"),

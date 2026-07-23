@@ -1,0 +1,862 @@
+{% extends "archive/base.dj.html" %}
+
+{% block title %}{% block page_title %}Home{% endblock %} - BFD9000{% endblock %}
+
+{% block body %}
+<div class="card shadow-sm bg-base-100 h-full grow">
+    <div class="p-4 flex space-between align-center border-b-2 border-primary">
+        <div class="flex grow items-end gap-2">
+            <a
+                href="{% url 'archive:index' %}"
+                class="text-3xl font-bold leading-none"
+                >BFD9000</a
+            >
+            <span
+                class="font-medium text-base-content/70"
+                style="align-self: flex-end; font-size: 0.65rem; line-height: 1"
+                >v{{ app_version|default:"nover" }}</span
+            >
+        </div>
+        <span class="my-auto text-sm text-nowrap mr-4"
+            >Logged in as: <strong>{{ user.username }}</strong></span
+        >
+        <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm grow-0">Logout</button>
+        </form>
+    </div>
+
+    <div class="flex-[1_1_0] flex">
+        <ul class="menu bg-base-300 w-36">
+            <li>
+                <a href="{% url 'archive:subjects' %}" data-nav="subjects">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="size-6"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                        />
+                    </svg>
+                    Subjects
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'archive:encounters' %}" data-nav="encounters">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="size-6"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                        />
+                    </svg>
+                    Encounters
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'archive:records' %}" data-nav="records">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="size-6"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"
+                        />
+                    </svg>
+                    Records
+                </a>
+            </li>
+            <li>
+                <a
+                    href="{% url 'archive:physical_records' %}"
+                    data-nav="physical-records"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="size-6"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+                        />
+                    </svg>
+                    Physical
+                </a>
+            </li>
+            <script>
+                // Highlight active navigation item based on current path, after stripping script_name prefix
+                document.addEventListener("DOMContentLoaded", () => {
+                    let prefix = (window.script_name || "").replace(/\/$/, ""); // no trailing slash
+                    let path = window.location.pathname;
+                    if (prefix && path.startsWith(prefix)) {
+                        path = path.slice(prefix.length);
+                    }
+                    // Remove trailing slash for consistency
+                    path = path.replace(/\/$/, "");
+                    let activeNav = path.split("/")[1] || "home";
+                    if (path === "" || path === "/") {
+                        activeNav = "home";
+                    }
+
+                    // Find and activate the appropriate menu item
+                    if (activeNav) {
+                        const navLink = document.querySelector(
+                            `[data-nav="${activeNav}"]`,
+                        );
+                        if (navLink) {
+                            navLink.classList.add("menu-active");
+                        }
+                    }
+                });
+            </script>
+            <!-- Scan nav item intentionally omitted: scanning is accessible via
+     the "Scan New Record" button on the Records view (/records/create/). -->
+        </ul>
+        <div class="flex-[1_1_0] flex flex-col overflow-y-auto">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block head %}
+{{ block.super }}
+<script>
+    /**
+     * InfiniteScrollTableManager - Infinite scroll table with total count badge.
+     *
+     * Rows are appended as the user scrolls down. A sentinel <tr> at the bottom of
+     * the tbody is observed with IntersectionObserver; when it becomes visible the
+     * next page is fetched and rows are appended. A count badge in the footer shows
+     * the total number of records returned by the API.
+     *
+     * Config options (all required unless marked optional):
+     *   tableBodyId     {string}   - tbody element id
+     *   fetchData       {Function} - async (params) => { count, next, previous, results }
+     *   renderRows      {Function} - (items) => Array<HTMLTableRowElement>
+     *   columnCount     {number}   - number of columns (for colspan in loading/empty rows)
+     *   countBadgeId    {string}   - element id that shows "N items" (optional)
+     *   searchInputId   {string}   - search input id (default: 'search-input')
+     *   searchButtonId  {string}   - search button id (default: 'search-button')
+     *   clearButtonId   {string}   - clear button id (default: 'clear-search-button')
+     *   pageSize        {number}   - rows per page fetch (default: 20)
+     *   onRowClick      {Function} - optional row click callback, receives item data
+     *   getEmptyStateMessage {Function} - (hasSearch) => string
+     */
+    class InfiniteScrollTableManager {
+        constructor(config) {
+            this.tableBodyId = config.tableBodyId;
+            this.fetchData = config.fetchData;
+            this.renderRows = config.renderRows;
+            this.columnCount = config.columnCount;
+            this.countBadgeId = config.countBadgeId || null;
+            this.searchInputId = config.searchInputId || "search-input";
+            this.searchButtonId = config.searchButtonId || "search-button";
+            this.clearButtonId = config.clearButtonId || "clear-search-button";
+            this.pageSize = config.pageSize || 20;
+            this.onRowClick = config.onRowClick || null;
+            this.getEmptyStateMessage =
+                config.getEmptyStateMessage ||
+                ((s) =>
+                    s
+                        ? "No items found matching your search"
+                        : "No items found");
+
+            // State
+            this.currentSearch = "";
+            this.customParams = {};
+            this.currentPage = 1;
+            this.totalCount = 0;
+            this.hasMore = true;
+            this.isLoading = false;
+            this._observer = null;
+            this._sentinel = null;
+        }
+
+        init() {
+            this.tableBody = document.getElementById(this.tableBodyId);
+            this.searchInput = document.getElementById(this.searchInputId);
+            this.searchButton = document.getElementById(this.searchButtonId);
+            this.clearButton = document.getElementById(this.clearButtonId);
+            this.countBadge = this.countBadgeId
+                ? document.getElementById(this.countBadgeId)
+                : null;
+
+            // Restore state from URL
+            const urlState = this._getStateFromURL();
+            this.currentSearch = urlState.search;
+            this.customParams = urlState.customParams;
+
+            if (this.searchInput) {
+                this.searchInput.value = this.currentSearch;
+            }
+
+            if (this.searchButton) {
+                this.searchButton.addEventListener("click", () =>
+                    this._handleSearch(),
+                );
+            }
+            if (this.clearButton) {
+                this.clearButton.addEventListener("click", () =>
+                    this._handleClearSearch(),
+                );
+            }
+            if (this.searchInput) {
+                this.searchInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") this._handleSearch();
+                });
+            }
+
+            window.addEventListener("popstate", () => {
+                const s = this._getStateFromURL();
+                this.currentSearch = s.search;
+                this.customParams = s.customParams;
+                if (this.searchInput)
+                    this.searchInput.value = this.currentSearch;
+                this._reset();
+            });
+
+            this._reset();
+        }
+
+        /** Set a custom filter param and reload */
+        setQueryParam(key, value) {
+            this.customParams[key] = value;
+            this._updateURL();
+            this._reset();
+        }
+
+        getQueryParam(key) {
+            return this.customParams[key];
+        }
+
+        // ── Private ──────────────────────────────────────────────
+
+        _handleSearch() {
+            if (this.searchInput)
+                this.currentSearch = this.searchInput.value.trim();
+            this._updateURL();
+            this._reset();
+        }
+
+        _handleClearSearch() {
+            if (this.searchInput) this.searchInput.value = "";
+            this.currentSearch = "";
+            this._updateURL();
+            this._reset();
+        }
+
+        /** Clear rows, reset page counter and start fresh */
+        _reset() {
+            this._disconnectObserver();
+            this.currentPage = 1;
+            this.hasMore = true;
+            this.totalCount = 0;
+            this.tableBody.replaceChildren();
+            this._updateCountBadge(null); // clear while loading
+            this._attachSentinel();
+        }
+
+        /** Append a sentinel <tr> and observe it */
+        _attachSentinel() {
+            this._sentinel = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = this.columnCount;
+            cell.id = this.tableBodyId + "-sentinel";
+            // Initial loading skeleton
+            cell.innerHTML = `
+            <div class="flex w-full gap-4 py-1">
+                <div class="skeleton h-[1lh] w-1/3"></div>
+                <div class="skeleton h-[1lh] grow"></div>
+                <div class="skeleton h-[1lh] w-1/2"></div>
+            </div>`;
+            this._sentinel.appendChild(cell);
+            this.tableBody.appendChild(this._sentinel);
+
+            this._observer = new IntersectionObserver(
+                (entries) => {
+                    if (
+                        entries[0].isIntersecting &&
+                        !this.isLoading &&
+                        this.hasMore
+                    ) {
+                        this._loadNextPage();
+                    }
+                },
+                { rootMargin: "200px" },
+            );
+            this._observer.observe(this._sentinel);
+        }
+
+        _disconnectObserver() {
+            if (this._observer) {
+                this._observer.disconnect();
+                this._observer = null;
+            }
+            if (this._sentinel) {
+                this._sentinel.remove();
+                this._sentinel = null;
+            }
+        }
+
+        async _loadNextPage() {
+            if (this.isLoading || !this.hasMore) return;
+            this.isLoading = true;
+
+            try {
+                const params = {
+                    search: this.currentSearch,
+                    page: this.currentPage,
+                    page_size: this.pageSize,
+                    ...this.customParams,
+                };
+
+                const response = await this.fetchData(params);
+                const items = response.results || [];
+                this.totalCount = response.count || 0;
+
+                if (items.length === 0 && this.currentPage === 1) {
+                    // Empty result set
+                    this._disconnectObserver();
+                    this._renderEmpty();
+                    this._updateCountBadge(0);
+                    return;
+                }
+
+                // Append rows before the sentinel
+                const rows = this.renderRows(items);
+                if (this.onRowClick) {
+                    rows.forEach((row, i) => {
+                        row.classList.add("hover", "cursor-pointer");
+                        row.onclick = () => this.onRowClick(items[i]);
+                    });
+                }
+                // Insert rows before the sentinel row
+                for (const row of rows) {
+                    this.tableBody.insertBefore(row, this._sentinel);
+                }
+
+                this._updateCountBadge(this.totalCount);
+
+                const fetchedSoFar =
+                    (this.currentPage - 1) * this.pageSize + items.length;
+                this.hasMore = fetchedSoFar < this.totalCount;
+                this.currentPage++;
+
+                if (!this.hasMore) {
+                    // Remove sentinel when all rows are loaded
+                    this._disconnectObserver();
+                }
+            } catch (error) {
+                console.error("Failed to load data:", error);
+                this._renderError(error);
+                this._disconnectObserver();
+            } finally {
+                this.isLoading = false;
+            }
+        }
+
+        _renderEmpty() {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = this.columnCount;
+            cell.className = "text-center text-base-content/50 py-8";
+            cell.textContent = this.getEmptyStateMessage(!!this.currentSearch);
+            row.appendChild(cell);
+            this.tableBody.replaceChildren(row);
+        }
+
+        _renderError(error) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = this.columnCount;
+            cell.className = "text-center text-error py-8";
+            cell.textContent = `Error loading data: ${error.message}`;
+            row.appendChild(cell);
+            this.tableBody.replaceChildren(row);
+        }
+
+        _updateCountBadge(count) {
+            if (!this.countBadge) return;
+            if (count === null) {
+                this.countBadge.textContent = "";
+            } else {
+                this.countBadge.textContent = count.toLocaleString();
+            }
+        }
+
+        _getStateFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const state = {
+                search: params.get("search") || "",
+                customParams: {},
+            };
+            for (const key of params.keys()) {
+                if (key !== "search") state.customParams[key] = params.get(key);
+            }
+            return state;
+        }
+
+        _updateURL() {
+            const params = new URLSearchParams();
+            if (this.currentSearch) params.set("search", this.currentSearch);
+            for (const [k, v] of Object.entries(this.customParams)) {
+                if (v !== null && v !== undefined && v !== "")
+                    params.set(k, v.toString());
+            }
+            const newURL = params.toString()
+                ? `${window.location.pathname}?${params.toString()}`
+                : window.location.pathname;
+            window.history.pushState(
+                { search: this.currentSearch, customParams: this.customParams },
+                "",
+                newURL,
+            );
+        }
+    }
+
+    /**
+     * PaginatedTableManager - A reusable class for managing paginated tables with search
+     *
+     * This class handles:
+     * - State management (pagination, search, custom query params)
+     * - URL synchronization with browser history
+     * - Data fetching and rendering
+     * - Search and pagination controls
+     *
+     * @example
+     * const tableManager = new PaginatedTableManager({
+     *   tableBodyId: 'subject_table_body',
+     *   fetchData: async (params) => {
+     *     const response = await fetch("{% url 'archive:api:subject-list' %}?" + params);
+     *     return await response.json();
+     *   },
+     *   renderRows: (subjects) => {
+     *     return subjects.map(subject => {
+     *       const row = document.createElement('tr');
+     *       row.innerHTML = `<td>${subject.id}</td><td>${subject.name}</td>`;
+     *       return row;
+     *     });
+     *   },
+     *   columnCount: 5
+     * });
+     *
+     * document.addEventListener('DOMContentLoaded', () => tableManager.init());
+     */
+    class PaginatedTableManager {
+        /**
+         * @param {Object} config - Configuration object
+         * @param {string} config.tableBodyId - ID of the tbody element
+         * @param {Function} config.fetchData - Async function that fetches data. Should return { count, next, previous, results }
+         * @param {Function} config.renderRows - Function that takes an array of items and returns an array of TR elements
+         * @param {number} config.columnCount - Number of columns in the table (for empty/loading states)
+         * @param {string} [config.searchInputId='search-input'] - ID of the search input element
+         * @param {string} [config.searchButtonId='search-button'] - ID of the search button
+         * @param {string} [config.clearButtonId='clear-search-button'] - ID of the clear search button
+         * @param {string} [config.prevButtonId='prev-button'] - ID of the previous page button
+         * @param {string} [config.nextButtonId='next-button'] - ID of the next page button
+         * @param {string} [config.pageButtonId='page-button'] - ID of the page display button
+         * @param {number} [config.pageSize=20] - Number of items per page
+         * @param {Function} [config.getEmptyStateMessage] - Optional function that returns empty state message. Receives hasSearch boolean, returns string
+         * @param {Function} [config.renderEmptyState] - Optional custom empty state renderer (overrides getEmptyStateMessage)
+         * @param {Function} [config.renderLoadingState] - Optional custom loading state renderer
+         * @param {Function} [config.onRowClick] - Optional callback when a row is clicked, receives the item data
+         */
+        constructor(config) {
+            // Required config
+            this.tableBodyId = config.tableBodyId;
+            this.fetchData = config.fetchData;
+            this.renderRows = config.renderRows;
+            this.columnCount = config.columnCount;
+
+            // Optional config with defaults
+            this.searchInputId = config.searchInputId || "search-input";
+            this.searchButtonId = config.searchButtonId || "search-button";
+            this.clearButtonId = config.clearButtonId || "clear-search-button";
+            this.prevButtonId = config.prevButtonId || "prev-button";
+            this.nextButtonId = config.nextButtonId || "next-button";
+            this.pageButtonId = config.pageButtonId || "page-button";
+            this.pageSize = config.pageSize || 20;
+            this.getEmptyStateMessage =
+                config.getEmptyStateMessage ||
+                this._defaultGetEmptyStateMessage.bind(this);
+            this.renderEmptyState =
+                config.renderEmptyState ||
+                this._defaultRenderEmptyState.bind(this);
+            this.renderLoadingState =
+                config.renderLoadingState ||
+                this._defaultRenderLoadingState.bind(this);
+            this.onRowClick = config.onRowClick || null;
+
+            // State
+            this.currentPage = 1;
+            this.currentSearch = "";
+            this.totalPages = 0;
+            this.isLoading = false;
+            this.customParams = {};
+        }
+
+        /**
+         * Initialize the table manager - call this in DOMContentLoaded
+         */
+        init() {
+            // Get elements
+            this.tableBody = document.getElementById(this.tableBodyId);
+            this.searchInput = document.getElementById(this.searchInputId);
+            this.searchButton = document.getElementById(this.searchButtonId);
+            this.clearButton = document.getElementById(this.clearButtonId);
+            this.prevButton = document.getElementById(this.prevButtonId);
+            this.nextButton = document.getElementById(this.nextButtonId);
+            this.pageButton = document.getElementById(this.pageButtonId);
+
+            // Initialize state from URL
+            const urlState = this._getStateFromURL();
+            this.currentSearch = urlState.search;
+            this.currentPage = urlState.page;
+            this.customParams = urlState.customParams;
+
+            // Populate search input with URL parameter
+            if (this.searchInput) {
+                this.searchInput.value = this.currentSearch;
+            }
+
+            // Attach event listeners
+            if (this.searchButton) {
+                this.searchButton.addEventListener("click", () =>
+                    this.handleSearch(),
+                );
+            }
+            if (this.clearButton) {
+                this.clearButton.addEventListener("click", () =>
+                    this.handleClearSearch(),
+                );
+            }
+            if (this.prevButton) {
+                this.prevButton.addEventListener("click", () =>
+                    this.handlePrevPage(),
+                );
+            }
+            if (this.nextButton) {
+                this.nextButton.addEventListener("click", () =>
+                    this.handleNextPage(),
+                );
+            }
+
+            // Handle Enter key in search input
+            if (this.searchInput) {
+                this.searchInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        this.handleSearch();
+                    }
+                });
+            }
+
+            // Handle browser back/forward buttons
+            window.addEventListener("popstate", () => {
+                const urlState = this._getStateFromURL();
+                this.currentSearch = urlState.search;
+                this.currentPage = urlState.page;
+                this.customParams = urlState.customParams;
+                if (this.searchInput) {
+                    this.searchInput.value = this.currentSearch;
+                }
+                this.loadData();
+            });
+
+            // Load initial data
+            this.loadData();
+        }
+
+        /**
+         * Load data from the API and render it
+         */
+        async loadData() {
+            if (this.isLoading) return;
+
+            this.isLoading = true;
+            this.renderLoadingState();
+
+            try {
+                const params = {
+                    search: this.currentSearch,
+                    page: this.currentPage,
+                    page_size: this.pageSize,
+                    ...this.customParams,
+                };
+
+                const response = await this.fetchData(params);
+
+                this._renderData(response.results);
+                this._updatePagination(response.count, this.currentPage);
+            } catch (error) {
+                console.error("Failed to load data:", error);
+                this._renderError(error);
+            } finally {
+                this.isLoading = false;
+            }
+        }
+
+        /**
+         * Handle search button click
+         */
+        handleSearch() {
+            if (this.searchInput) {
+                this.currentSearch = this.searchInput.value.trim();
+            }
+            this.currentPage = 1;
+            this._updateURL();
+            this.loadData();
+        }
+
+        /**
+         * Handle clear search button click
+         */
+        handleClearSearch() {
+            if (this.searchInput) {
+                this.searchInput.value = "";
+            }
+            this.currentSearch = "";
+            this.currentPage = 1;
+            this._updateURL();
+            this.loadData();
+        }
+
+        /**
+         * Handle previous page button click
+         */
+        handlePrevPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this._updateURL();
+                this.loadData();
+            }
+        }
+
+        /**
+         * Handle next page button click
+         */
+        handleNextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this._updateURL();
+                this.loadData();
+            }
+        }
+
+        /**
+         * Set a custom query parameter
+         * @param {string} key - Parameter name
+         * @param {*} value - Parameter value
+         */
+        setQueryParam(key, value) {
+            this.customParams[key] = value;
+            this.currentPage = 1;
+            this._updateURL();
+            this.loadData();
+        }
+
+        /**
+         * Get a custom query parameter
+         * @param {string} key - Parameter name
+         * @returns {*} Parameter value
+         */
+        getQueryParam(key) {
+            return this.customParams[key];
+        }
+
+        // Private methods
+
+        _getStateFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const state = {
+                search: params.get("search") || "",
+                page: parseInt(params.get("page")) || 1,
+                customParams: {},
+            };
+
+            // Extract custom parameters
+            for (const param of params.keys()) {
+                const value = params.get(param);
+                if (value !== null && param !== "search" && param !== "page") {
+                    state.customParams[param] = value;
+                }
+            }
+
+            return state;
+        }
+
+        _updateURL() {
+            const params = new URLSearchParams();
+
+            if (this.currentSearch) {
+                params.set("search", this.currentSearch);
+            }
+            if (this.currentPage > 1) {
+                params.set("page", this.currentPage.toString());
+            }
+
+            // Add custom parameters
+            for (const [key, value] of Object.entries(this.customParams)) {
+                if (value !== null && value !== undefined && value !== "") {
+                    params.set(key, value.toString());
+                }
+            }
+
+            const newURL = params.toString()
+                ? `${window.location.pathname}?${params.toString()}`
+                : window.location.pathname;
+
+            window.history.pushState(
+                {
+                    search: this.currentSearch,
+                    page: this.currentPage,
+                    customParams: this.customParams,
+                },
+                "",
+                newURL,
+            );
+        }
+
+        _renderData(items) {
+            if (items.length === 0) {
+                this.renderEmptyState(!!this.currentSearch);
+                return;
+            }
+
+            const rows = this.renderRows(items);
+
+            // Add click handlers if onRowClick is provided
+            if (this.onRowClick) {
+                rows.forEach((row, index) => {
+                    row.classList.add("hover", "cursor-pointer");
+                    row.onclick = () => this.onRowClick(items[index]);
+                });
+            }
+
+            this.tableBody.replaceChildren(...rows);
+        }
+
+        _updatePagination(count, page) {
+            this.totalPages = Math.ceil(count / this.pageSize);
+
+            if (this.pageButton) {
+                this.pageButton.textContent = `Page ${page} / ${this.totalPages || 1}`;
+            }
+            if (this.prevButton) {
+                this.prevButton.disabled = page <= 1;
+            }
+            if (this.nextButton) {
+                this.nextButton.disabled = page >= this.totalPages;
+            }
+        }
+
+        _defaultGetEmptyStateMessage(hasSearch) {
+            return hasSearch
+                ? "No items found matching your search"
+                : "No items found";
+        }
+
+        _defaultRenderEmptyState(hasSearch) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = this.columnCount;
+            cell.className = "text-center text-base-content/50 py-8";
+            cell.textContent = this.getEmptyStateMessage(hasSearch);
+            row.appendChild(cell);
+            this.tableBody.replaceChildren(row);
+        }
+
+        _defaultRenderLoadingState() {
+            const skeletonRows = Array.from({ length: 4 }, () => {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = this.columnCount;
+                cell.innerHTML = `
+                <div class="flex w-full gap-4">
+                    <div class="skeleton h-[1lh] w-1/3"></div>
+                    <div class="skeleton h-[1lh] grow"></div>
+                    <div class="skeleton h-[1lh] w-1/2"></div>
+                </div>
+            `;
+                row.appendChild(cell);
+                return row;
+            });
+            this.tableBody.replaceChildren(...skeletonRows);
+        }
+
+        _renderError(error) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = this.columnCount;
+            cell.className = "text-center text-error py-8";
+            cell.textContent = `Error loading data: ${error.message}`;
+            row.appendChild(cell);
+            this.tableBody.replaceChildren(row);
+        }
+    }
+
+    /**
+     * Attach a search syntax tooltip (info icon) to the search bar.
+     *
+     * Call this once after DOMContentLoaded, passing the id of the search input's
+     * parent container (defaults to the element that contains #search-input).
+     *
+     * The tooltip explains the ^ (starts-with) and = (exact) prefix modifiers
+     * supported by the DRF SearchFilter backend.
+     *
+     * @param {string} [containerId] - Optional id of the flex container holding the search input.
+     *   If omitted, the tooltip is inserted after the element with id "search-input".
+     */
+    function attachSearchTooltip(containerId) {
+        const tooltipHTML = `
+<div class="tooltip tooltip-bottom before:max-w-xs before:text-left before:whitespace-pre-wrap"
+     data-tip="Search matches the start of record identifiers (e.g. &quot;R001&quot; matches &quot;R001LM08y06m01&quot;).">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+         stroke-width="1.5" stroke="currentColor" class="size-5 text-base-content/50 cursor-help">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+    </svg>
+</div>`;
+
+        let anchor;
+        if (containerId) {
+            anchor = document.getElementById(containerId);
+        } else {
+            anchor = document.getElementById("search-input");
+        }
+        if (!anchor) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = tooltipHTML.trim();
+        const tooltipEl = wrapper.firstChild;
+
+        // Insert after the anchor element
+        anchor.parentNode.insertBefore(tooltipEl, anchor.nextSibling);
+    }
+</script>
+{% endblock %}

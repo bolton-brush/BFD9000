@@ -1,4 +1,4 @@
-{% extends 'archive/base_index.html' %}
+{% extends 'archive/base_index.dj.html' %}
 
 {% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
@@ -117,7 +117,7 @@
                 search: query,
                 page_size: '20',
             });
-            const response = await fetch((window.script_name || '') + `/api/subjects/?${params}`);
+            const response = await fetch("{% url 'archive:api:subject-list' %}?" + params);
             if (!response.ok) {
                 throw new Error(`Failed to search subjects: ${response.status}`);
             }
@@ -126,7 +126,7 @@
         }
 
         async function fetchValueset(type) {
-            const response = await fetch((window.script_name || '') + `/api/valuesets/?type=${type}`);
+            const response = await fetch("{% url 'archive:api:valuesets-list' %}?type=" + type);
             if (!response.ok) {
                 throw new Error(`Failed to fetch valueset: ${type}`);
             }
@@ -221,7 +221,7 @@
             }*/
 
             try {
-                const response = await fetch((window.script_name || '') + '/api/encounters/', {
+                const response = await fetch("{% url 'archive:api:encounter-list' %}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

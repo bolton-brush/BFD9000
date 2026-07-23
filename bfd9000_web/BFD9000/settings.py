@@ -373,7 +373,7 @@ CSRF_TRUSTED_ORIGINS: list[str] = [
 
 SCANNER_API_BASE = _read_secret("SCANNER_API_BASE", "http://localhost:5000")
 SCANNER_DEVICE_ID = _read_secret("SCANNER_DEVICE_ID", "scanner-001")
-BFD9020_BASE_URL = _read_secret("BFD9020_BASE_URL", "https://wingate.case.edu/bfd9020")
+BFD9020_BASE_URL = _read_secret("BFD9020_BASE_URL", "http://bfd9020:9020")
 
 
 # Logging Configuration

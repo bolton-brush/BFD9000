@@ -1,0 +1,59 @@
+{% extends 'archive/base.dj.html' %}
+
+{% block title%}Login - BFD9000{% endblock %}
+
+    {%block body_style %}
+    display: flex;
+    justify-content: center;
+    align-items: center
+    {% endblock %}
+
+{% block body %}
+<div class="card bg-base-100 w-96 p-8 shadow-sm">
+    {% if form.errors %}
+    <div role="alert" class="alert alert-error alert-soft">
+        <ul>
+            {% for field,errors in form.errors.items %} {% for error in errors
+            %}
+            <li>{{ error }}</li>
+            {% endfor %} {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'login_local' %}">
+        {% csrf_token %}
+
+        <fieldset
+            class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4"
+        >
+            <legend class="fieldset-legend">Login</legend>
+            <label class="input" for="id_username">
+                <input
+                    type="text"
+                    placeholder="Username"
+                    name="username"
+                    id="id_username"
+                    required
+                    autofocus
+                />
+            </label>
+            <label class="input" for="id_password">
+                <input
+                    type="password"
+                    placeholder="Password"
+                    name="password"
+                    id="id_password"
+                    required
+                />
+            </label>
+        </fieldset>
+
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <button type="submit" class="btn btn-primary w-full mt-4">
+            Sign In
+        </button>
+    </form>
+</div>
+{% endblock %}

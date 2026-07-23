@@ -1,4 +1,6 @@
-{% extends 'archive/base_index.html' %} {% block content %}
+{% extends 'archive/base_index.dj.html' %}
+
+{% block content %}
 <div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
     <div class="max-w-2xl mx-auto w-full">
         <div class="prose prose-sm mb-6">
@@ -131,11 +133,14 @@
             // Hide any previous errors
             errorMessage.classList.add("hidden");
 
-            const identifier = document.getElementById("identifier").value.trim();
+            const identifier = document
+                .getElementById("identifier")
+                .value.trim();
             const identifierSystem = resolveIdentifierSystem(identifier);
 
             if (identifier && !identifierSystem) {
-                errorText.textContent = "Identifier must match Bolton (B0001) or Lancaster (L########) format.";
+                errorText.textContent =
+                    "Identifier must match Bolton (B0001) or Lancaster (L########) format.";
                 errorMessage.classList.remove("hidden");
                 submitBtn.disabled = false;
                 submitBtn.textContent = "Create Subject";
@@ -148,9 +153,9 @@
             const formData = {
                 gender: document.getElementById("gender").value,
                 // TODO: what to do with these unexposed fields?
-                birth_date: '1970-01-01',
-                humanname_family: 'MISSING',
-                humanname_given: 'MISSING',
+                birth_date: "1970-01-01",
+                humanname_family: "MISSING",
+                humanname_given: "MISSING",
                 collection: document.getElementById("collection").value || null,
             };
 
@@ -160,14 +165,17 @@
             }
 
             try {
-                const response = await fetch((window.script_name || '') + "/api/subjects/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": "{{ csrf_token }}",
+                const response = await fetch(
+                    "{% url 'archive:api:subject-list' %}",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}",
+                        },
+                        body: JSON.stringify(formData),
                     },
-                    body: JSON.stringify(formData),
-                });
+                );
 
                 if (response.ok) {
                     // Success - redirect to subjects page
@@ -178,14 +186,18 @@
                     let errorMsg = "Failed to create subject. ";
 
                     if (errorData?.error) {
-                        errorMsg += errorData.error.message || '';
+                        errorMsg += errorData.error.message || "";
                         if (errorData.error.details) {
-                            errorMsg += ' ' + JSON.stringify(errorData.error.details);
+                            errorMsg +=
+                                " " + JSON.stringify(errorData.error.details);
                         }
-                    } else if (typeof errorData === 'object') {
+                    } else if (typeof errorData === "object") {
                         const details = Object.entries(errorData)
-                            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-                            .join('; ');
+                            .map(
+                                ([field, msgs]) =>
+                                    `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`,
+                            )
+                            .join("; ");
                         errorMsg += details;
                     }
 
