@@ -20,7 +20,6 @@ from archive.constants import (
     SYSTEM_RECORD_TYPE,
 )
 from archive.models import (
-    Address,
     Coding,
     Collection,
     DigitalRecord,
