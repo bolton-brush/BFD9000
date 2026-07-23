@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from io import BytesIO
-from typing import IO, TYPE_CHECKING, Any, BinaryIO, Protocol, override
+from typing import TYPE_CHECKING, Any, Protocol
 
 from BFD9000.conf import settings as conf
 from bfd9020_ai_api_client import AuthenticatedClient, Client
@@ -71,31 +71,6 @@ class EndpointModule[Body, Return: ReturnProtocol](Protocol):
     ) -> Response[Return | HTTPValidationError]:
         """Synchronous fetch from openapi-generated client"""
         ...
-
-
-class StreamWrapper(BinaryIO):
-    """Bridges UploadedFile to BinaryIO with zero data copy."""
-
-    def __init__(self, uploaded_file: IO[bytes]) -> None:
-        """Create a BinaryIO compatible object from Django"""
-        self._stream: IO[bytes] = uploaded_file
-
-    def __getattr__(self, name: str) -> Any:  # pyright: ignore[reportExplicitAny, reportAny]  # noqa: ANN401
-        """Pass down any original methods to the stream
-
-        Args:
-            name: The attribute to find
-
-        Returns:
-            From the nested stream
-
-        """
-        # Dynamically passes read, seek, tell, close, __exit__, etc. down to the stream
-        return getattr(self._stream, name)  # pyright: ignore[reportAny]
-
-    @override
-    def __enter__(self) -> BinaryIO:
-        return self
 
 
 def _get_api_client() -> Client:
