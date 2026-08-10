@@ -1414,7 +1414,7 @@
                 showAIStatus('AI classification failed: no valid code returned. Please classify manually.', true);
             }
 
-            additionalInfo = result.additional_info
+            const additionalInfo = result.additional_info.prediction
 
             // Replace transformOps with AI result (do not append — AI resets orientation).
             // Note: result.rotation can be 0 (falsy) but still valid, so check for null explicitly.
