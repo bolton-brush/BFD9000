@@ -30,16 +30,16 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1784827286,
-        "narHash": "sha256-bcnEx0DE8knSzyKmloCQtAZEElJfKN0Y8j6ncIxE5iE=",
+        "lastModified": 1786375166,
+        "narHash": "sha256-M+g5sKH69/Jd6F+SHeoUO1p6eUO1L/2yhVfHiZLTIYw=",
         "owner": "bolton-brush",
         "repo": "BFD9020",
-        "rev": "925855631905c9e5da951628fb161605350ff7e0",
+        "rev": "c96d99263c73e80e2751c117f9d6b284f5c11aa4",
         "type": "github"
       },
       "original": {
         "owner": "bolton-brush",
-        "ref": "feature/1-nixify",
+        "ref": "main",
         "repo": "BFD9020",
         "type": "github"
       }

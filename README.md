@@ -152,7 +152,7 @@ be provided via the environment, a `.env` file, or via Docker Compose.
 | `CORS_ALLOWED_ORIGINS`      | No             | Comma-separated list of CORS-allowed origins (frontend integration).               | `http://localhost:5173,http://127.0.0.1:5173` |
 | `SCANNER_API_BASE`          | No             | Base URL for scanner-side API calls.                                               | `http://localhost:5000`                       |
 | `SCANNER_DEVICE_ID`         | No             | Scanner hardware ID string.                                                        | `scanner-001`                                 |
-| `BFD9020_BASE_URL`          | No             | Endpoint for the BFD9020 AI microservice (magic AI button).                        | `https://wingate.case.edu/bfd9020`            |
+| `BFD9020_BASE_URL`          | No             | Endpoint for the BFD9020 AI microservice (magic AI button).                        | `https://bfd9020:9020`                        |
 | `THUMBNAIL_MAX_WIDTH`       | No             | Maximum width for UI/API generated thumbnails (px).                                | `300`                                         |
 | `THUMBNAIL_MAX_HEIGHT`      | No             | Maximum height for UI/API generated thumbnails (px).                               | `300`                                         |
 | `THUMBNAIL_TARGET_BYTES`    | No             | Target file size for thumbnails, in bytes.                                         | `20480` (20 KB)                               |

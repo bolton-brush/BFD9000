@@ -9,8 +9,7 @@
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
     stl_thumb.url = "github:bolton-brush/STL-Thumb/release";
-    # TODO: Change the branch once the necessary PR#11 has been merged
-    bfd9020.url = "github:bolton-brush/BFD9020/feature/1-nixify";
+    bfd9020.url = "github:bolton-brush/BFD9020/main";
   };
 
   outputs =

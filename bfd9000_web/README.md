@@ -138,7 +138,7 @@ that CAS uses for service and callback URLs. The values in `dot-env.example` are
 for the local Caddy workflow; update them when the CAS server or externally visible
 application origin differs.
 
-For production, `nix build .#dockerImage` is called directly and uploaded to the OCI
+For production, `nix build .#dockerImage` is built and streamed directly into the OCI
 store. You may run this manually to dissect the built docker-image if there is confusion
 about where items exist within the docker.
 
