@@ -76,6 +76,7 @@ services:
       - bfd9000
   bfd9020:
     image: localhost/bfd9020:build
+    # Ports are not necessary to expose in production, this is just for dev convenience
     ports:
       - "127.0.0.1:9020:9020"
     tmpfs: "/tmp"
