@@ -1414,19 +1414,15 @@
                 showAIStatus('AI classification failed: no valid code returned. Please classify manually.', true);
             }
 
-            const additionalInfo = result.additional_info.prediction
+            const additionalInfo = result.additional_info
+            const rotation = additionalInfo?.prediction?.rotation
+            const flip = additionalInfo?.prediction?.flip
 
             // Replace transformOps with AI result (do not append — AI resets orientation).
-            // Note: result.rotation can be 0 (falsy) but still valid, so check for null explicitly.
-            if (additionalInfo !== null) {
-                state.transformOps = [{
-                    rotation: additionalInfo.rotation || 0,
-                    flip: additionalInfo.flip || false,
-                }];
-            } else {
-                // AI returned no orientation data — reset transforms and show clean base
-                state.transformOps = [];
-            }
+            state.transformOps = [{
+                rotation: rotation || 0,
+                flip: flip || false,
+            }];
             try {
                 await applyTransformOpsToPreview();
             } catch (error) {
@@ -1436,9 +1432,9 @@
             const confidence = result.probability?.toFixed(2) ?? 'N/A';
             const rot_confidence = additionalInfo?.probability?.toFixed(2) ?? 'N/A';
             const classification = aiCode || 'N/A';
-            const rotation = additionalInfo !== null && additionalInfo.rotation !== null ? `${additionalInfo.rotation}°` : 'none';
-            const flip = additionalInfo !== null && additionalInfo.flip ? 'yes' : 'no';
-            showAIStatus(`AI: class=${classification} conf=${confidence} rot_conf=${rot_confidence} rotation=${rotation} flip=${flip}`);
+            const rotation_text = rotation != null ? `${rotation}°` : 'none';
+            const flip_text = (flip || false) ? 'yes' : 'no';
+            showAIStatus(`AI: class=${classification} conf=${confidence} rot_conf=${rot_confidence} rotation=${rotation_text} flip=${flip_text}`);
             updateSubmitButton();
         } catch (error) {
             showAIStatus('AI processing failed: ' + error.message, true);

@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main # Triggers for staging builds
-      - dev # Triggers for dev branch builds
+      - develop # Triggers for dev branch builds
     tags:
       - "v*" # Triggers for production releases
 permissions:
@@ -82,7 +82,7 @@ jobs:
             type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
 
             # If it's a push to dev, tag it as 'dev'
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
 
             # If it's a v* tag, generate the exact semver version (e.g., 1.2.5)
             type=semver,pattern={{version}}
