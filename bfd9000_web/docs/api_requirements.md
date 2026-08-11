@@ -489,18 +489,24 @@ internal network and requests inherit the operator's Django session.
 
 **Common requirements for all endpoints in this section**:
 
-- **Method**: `POST` only
-- **Authentication**: Required (Django session login)
+- **Method**: `POST` only (other methods return `405 Method Not Allowed`; `OPTIONS`
+  returns DRF metadata as usual)
+- **Authentication**: Required (Django session login via DRF `SessionAuthentication`;
+  anonymous requests receive a JSON `403 Forbidden`, not an HTML login redirect)
 - **Request**: `multipart/form-data` with a single required file field named `image`
-  (the scanned image as received from the BFD9010 bridge)
+  (the scanned image as received from the BFD9010 bridge), at most 50MB
 - **Success Response** (`200 OK`): the upstream BFD9020 JSON classification result,
   passed through unmodified (e.g. `prediction`, `probability`, `all_predictions`,
   `additional_info`; see the BFD9020 API docs for exact schemas)
-- **Error Responses**:
-  - `400 Bad Request` - missing `image` file field
-  - upstream status code - the BFD9020 service rejected the request (e.g. `422`)
-  - `500 Internal Server Error` - the BFD9020 service is unreachable
-  - Error body shape: `{"error": "...", "details": "..."}`
+- **Error Responses** (all follow the standard
+  [Error Response Format](#error-response-format)):
+  - `400 Bad Request` (`VALIDATION_ERROR`) - missing `image` file field, or the file
+    exceeds the 50MB limit
+  - `403 Forbidden` (`PERMISSION_DENIED`) - not logged in
+  - `502 Bad Gateway` (`UPSTREAM_UNAVAILABLE`) - the BFD9020 service is unreachable
+  - `502 Bad Gateway` (`UPSTREAM_ERROR`) - the BFD9020 service rejected the request
+    (e.g. upstream `422`); the upstream status code and body are preserved in
+    `error.details`
 
 #### 7.1 Classify X-ray Type
 
@@ -752,6 +758,9 @@ All error responses follow this structure:
 - `DUPLICATE_RECORD` - 409
 - `FILE_TOO_LARGE` - 413
 - `UNSUPPORTED_FILE_TYPE` - 415
+- `UPSTREAM_UNAVAILABLE` - 502 (BFD9020 proxy: backend unreachable)
+- `UPSTREAM_ERROR` - 502 (BFD9020 proxy: backend rejected the request; see
+  `error.details.upstream_status`)
 - `PROCESSING_FAILED` - 500
 
 ### Validation Rules

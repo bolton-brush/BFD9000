@@ -2,6 +2,11 @@
 
 from Django to the private internal FastAPI classifier backend using the
 auto-generated bfd9020_ai_api_client SDK.
+
+These are DRF views so that authentication, multipart parsing, and error
+responses follow the same API stack as the rest of the /api/ namespace:
+anonymous requests get a 403 JSON error (not an HTML login redirect), and
+all errors use the shared {"error": {"code", "message", "details"}} contract.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, Any, Protocol
 
 from BFD9000.conf import settings as conf
+from BFD9000.settings import MAX_9020_SIZE
 from bfd9020_ai_api_client import AuthenticatedClient, Client
 from bfd9020_ai_api_client.api.default import (
     classify_frontal_fliprot_frontal_fliprot_post as frontal,
@@ -38,16 +44,25 @@ from bfd9020_ai_api_client.models.body_get_xray_info_xray_info_post import (
     BodyGetXrayInfoXrayInfoPost as XrayInfoBody,
 )
 from bfd9020_ai_api_client.models.http_validation_error import HTTPValidationError
-from bfd9020_ai_api_client.types import File, Response
-from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.views.decorators.http import require_POST
+from bfd9020_ai_api_client.types import File
+from bfd9020_ai_api_client.types import Response as SdkResponse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    extend_schema,  # pyright: ignore[reportUnknownVariableType]
+)
 from httpx import Timeout
-from rest_framework.status import HTTP_200_OK
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ParseError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK, HTTP_502_BAD_GATEWAY
 from result.result import as_result
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from django.core.files.uploadedfile import UploadedFile
+    from rest_framework.request import Request
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +83,18 @@ class EndpointModule[Body, Return: ReturnProtocol](Protocol):
         *,
         client: AuthenticatedClient | Client,
         body: Body,
-    ) -> Response[Return | HTTPValidationError]:
+    ) -> SdkResponse[Return | HTTPValidationError]:
         """Synchronous fetch from openapi-generated client"""
         ...
+
+
+_PROXY_REQUEST_SCHEMA: dict[str, Any] = {  # pyright: ignore[reportExplicitAny]
+    "multipart/form-data": {
+        "type": "object",
+        "properties": {"image": {"type": "string", "format": "binary"}},
+        "required": ["image"],
+    }
+}
 
 
 def _get_api_client() -> Client:
@@ -89,8 +113,8 @@ def _get_api_client() -> Client:
 
 
 def require_image(
-    view_func: Callable[..., HttpResponse],
-) -> Callable[..., HttpResponse]:
+    view_func: Callable[..., Response],
+) -> Callable[..., Response]:
     """Decorator that validates request.FILES['image']
 
     Args:
@@ -102,17 +126,17 @@ def require_image(
     """
 
     @wraps(view_func)
-    def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:  # pyright: ignore[reportExplicitAny, reportAny]  # noqa: ANN401
-
-        uploaded_file = request.FILES.get("image")
+    def wrapper(request: Request, *args: Any, **kwargs: Any) -> Response:  # pyright: ignore[reportExplicitAny, reportAny]  # noqa: ANN401
+        uploaded_file: UploadedFile | None = request.FILES.get("image")  # pyright: ignore[reportAny]
 
         if not uploaded_file or uploaded_file.file is None:  # pyright: ignore[reportUnknownMemberType]
-            return JsonResponse(
-                {
-                    "error": "Missing image file in request. "
-                    + "Expected field name 'image'."
-                },
-                status=400,
+            raise ParseError(
+                "Missing image file in request. Expected field name 'image'."
+            )
+
+        if (uploaded_file.size or 0) > MAX_9020_SIZE:
+            raise ParseError(
+                "File exceeds size limit (50MB). Expected field name 'image'."
             )
 
         file_bytes: bytes = uploaded_file.read()  # pyright: ignore[reportAny]
@@ -129,12 +153,35 @@ def require_image(
     return wrapper
 
 
+def _error_response(code: str, message: str, details: object, status: int) -> Response:
+    """Build an error response matching the shared API error contract.
+
+    Args:
+        code: Machine-readable error code
+        message: Human-readable error message
+        details: Optional structured details about the error
+        status: HTTP status code for the response
+
+    Returns:
+        DRF Response with the nested {"error": {"code", "message", "details"}} body
+
+    """
+    return Response(
+        {"error": {"code": code, "message": message, "details": details}},
+        status=status,
+    )
+
+
 def _handle_client_call[Body, Return: ReturnProtocol](
     body: Body,
     api_func: EndpointModule[Body, Return],
     api_name: str = "",
-) -> HttpResponse:
+) -> Response:
     """Helper to validate uploaded image and execute a generated client endpoint
+
+    All backend failures are normalized to 502 Bad Gateway with the shared
+    nested error contract so clients only deal with this API's own status
+    codes; the upstream status is preserved in the error details.
 
     Args:
         body: The body to send to the proxied endpoint
@@ -142,7 +189,7 @@ def _handle_client_call[Body, Return: ReturnProtocol](
         api_name: The name of the API to use in logging
 
     Returns:
-        HttpResponse: Formatted JSON response or error details.
+        Response: Formatted JSON response or error details.
 
     """
     client = _get_api_client()
@@ -159,12 +206,11 @@ def _handle_client_call[Body, Return: ReturnProtocol](
             api_name,
         )
         logger.exception("Full traceback for classifier API error:", exc_info=err)
-        return JsonResponse(
-            {
-                "error": "Classification backend returned an error",
-                "details": f"{err}",
-            },
-            status=500,
+        return _error_response(
+            "UPSTREAM_UNAVAILABLE",
+            "Classification backend could not be reached",
+            f"{err}",
+            HTTP_502_BAD_GATEWAY,
         )
 
     response_ok = response.unwrap()
@@ -180,21 +226,24 @@ def _handle_client_call[Body, Return: ReturnProtocol](
             api_name,
             response_ok.status_code,
         )
-        return JsonResponse(
+        return _error_response(
+            "UPSTREAM_ERROR",
+            "Classification backend returned an error",
             {
-                "error": "Classification backend returned an error",
-                "details": str(response_ok.content, encoding="utf-8", errors="ignore"),
+                "upstream_status": response_ok.status_code,
+                "body": str(response_ok.content, encoding="utf-8", errors="ignore"),
             },
-            status=response_ok.status_code or 500,
+            HTTP_502_BAD_GATEWAY,
         )
 
-    return JsonResponse(parsed.to_dict(), status=200)
+    return Response(parsed.to_dict(), status=HTTP_200_OK)
 
 
-@login_required
-@require_POST
+@extend_schema(request=_PROXY_REQUEST_SCHEMA, responses={200: OpenApiTypes.OBJECT})
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @require_image
-def classify_xray_proxy(_: HttpRequest, image: File) -> HttpResponse:
+def classify_xray_proxy(_: Request, image: File) -> Response:
     """Proxy for POST /xray-class using generated SDK.
 
     Args:
@@ -207,10 +256,11 @@ def classify_xray_proxy(_: HttpRequest, image: File) -> HttpResponse:
     return _handle_client_call(XrayBody(image=image), xray, "xray")
 
 
-@login_required
-@require_POST
+@extend_schema(request=_PROXY_REQUEST_SCHEMA, responses={200: OpenApiTypes.OBJECT})
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @require_image
-def classify_lateral_fliprot_proxy(_: HttpRequest, image: File) -> HttpResponse:
+def classify_lateral_fliprot_proxy(_: Request, image: File) -> Response:
     """Proxy for POST /lateral-fliprot using generated SDK.
 
     Args:
@@ -223,10 +273,11 @@ def classify_lateral_fliprot_proxy(_: HttpRequest, image: File) -> HttpResponse:
     return _handle_client_call(LateralBody(image=image), lateral, "xray")
 
 
-@login_required
-@require_POST
+@extend_schema(request=_PROXY_REQUEST_SCHEMA, responses={200: OpenApiTypes.OBJECT})
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @require_image
-def classify_frontal_fliprot_proxy(_: HttpRequest, image: File) -> HttpResponse:
+def classify_frontal_fliprot_proxy(_: Request, image: File) -> Response:
     """Proxy for POST /frontal-fliprot using generated SDK.
 
     Args:
@@ -239,10 +290,11 @@ def classify_frontal_fliprot_proxy(_: HttpRequest, image: File) -> HttpResponse:
     return _handle_client_call(FrontalBody(image=image), frontal, "xray")
 
 
-@login_required
-@require_POST
+@extend_schema(request=_PROXY_REQUEST_SCHEMA, responses={200: OpenApiTypes.OBJECT})
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 @require_image
-def get_xray_info_proxy(_: HttpRequest, image: File) -> HttpResponse:
+def get_xray_info_proxy(_: Request, image: File) -> Response:
     """Proxy for POST /xray-info using generated SDK.
 
     Args:

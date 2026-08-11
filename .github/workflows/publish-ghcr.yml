@@ -40,7 +40,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch all git tags
-        run: git fetch --prune --unimportances --tags
+        run: git fetch --prune --tags
       - name: Check if this is the newest SemVer tag
         id: semver_check
         run: |

@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from django.urls import include, path
 
-from archive.api import urls
-
 from . import views
 
 # Django expects `app_name` for namespacing URLs.
@@ -32,5 +30,5 @@ urlpatterns = [
     path("physical-records/", views.physical_records, name="physical_records"),
     path("api/scan/tiff-preview/", views.scan_tiff_preview, name="scan_tiff_preview"),
     # API routes
-    path("api/", include((urls, "api"))),
+    path("api/", include("archive.api.urls", namespace="api")),
 ]

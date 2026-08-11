@@ -1,4 +1,4 @@
-"""API routes for the archive app"""
+"""URL routes for the archive app API"""
 
 from __future__ import annotations
 
@@ -10,10 +10,11 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_nested.routers import NestedDefaultRouter
 
 from archive import views
-from archive.api.scan.scan import scan_patterns
 
 if TYPE_CHECKING:
     from django.urls.resolvers import URLPattern, URLResolver
+
+app_name = "api"
 
 router = DefaultRouter()
 router.register(r"codings", views.CodingViewSet)
@@ -59,11 +60,11 @@ encounters_router.register(
 imaging_router = NestedDefaultRouter(router, r"imaging-studies", lookup="imaging_study")
 imaging_router.register(r"series", views.SeriesViewSet, basename="imagingstudy-series")
 
-urls = [
+urlpatterns = [
     *reduce(
         lambda acc, b: acc + b.urls,
         [router, subjects_router, encounters_router, imaging_router],
         cast("list[URLPattern | URLResolver]", []),
     ),
-    path("scan/", include((scan_patterns, "scan"))),
+    path("scan/", include("archive.api.scan.urls", namespace="scan")),
 ]

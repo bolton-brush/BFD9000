@@ -102,9 +102,9 @@ JavaScript; see "Client-side URL Construction" in `api_requirements.md`.
 
 ### Proxy endpoints
 
-Four login-required, POST-only Django views in `archive/api/scan/views.py` forward a
-multipart `image` file field to the internal BFD9020 FastAPI service and pass the
-classification JSON back to the browser:
+Four DRF function-based views (`@api_view(["POST"])` with `IsAuthenticated`) in
+`archive/api/scan/views.py` forward a multipart `image` file field to the internal
+BFD9020 FastAPI service and pass the classification JSON back to the browser:
 
 | Endpoint                          | URL name                                    | Upstream BFD9020 operation |
 | --------------------------------- | ------------------------------------------- | -------------------------- |
@@ -126,9 +126,14 @@ Implementation details:
   `https://wingate.case.edu/bfd9020`).
 - **Success**: upstream `200 OK` JSON is returned to the browser unmodified
   (`prediction`, `probability`, `all_predictions`, `additional_info`).
-- **Errors**: missing `image` field → `400`; unreachable backend → `500`; upstream
-  non-200 or validation error → upstream status code. Error body shape is
-  `{"error": "...", "details": "..."}`.
+- **Errors**: these views deliberately use the DRF stack rather than
+  `login_required`/plain `JsonResponse`, so all errors follow the shared
+  `{"error": {"code", "message", "details"}}` contract via
+  `BFD9000.exceptions.custom_exception_handler`. Anonymous requests get `403`
+  (`PERMISSION_DENIED`) as JSON instead of an HTML login redirect; missing/oversized
+  `image` (`> MAX_9020_SIZE`, 50MB) → `400` (`VALIDATION_ERROR`); unreachable backend →
+  `502` (`UPSTREAM_UNAVAILABLE`); upstream non-200 or validation error → `502`
+  (`UPSTREAM_ERROR`) with `error.details.upstream_status`/`body` preserved.
 - Before this change, the browser called the BFD9020 service directly using an
   `ai_base_url` template variable. That variable is gone; the scan page now fetches the
   Django proxy URLs, so the upstream service never needs to be reachable (or

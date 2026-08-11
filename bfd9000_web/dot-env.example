@@ -29,7 +29,7 @@ SCANNER_API_BASE=http://localhost:5000
 SCANNER_DEVICE_ID=scanner-001
 
 # BFD9020 AI Service
-BFD9020_BASE_URL=https://bfd9020:9020
+BFD9020_BASE_URL=http://bfd9020:9020
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173

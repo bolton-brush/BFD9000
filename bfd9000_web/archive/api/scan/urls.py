@@ -1,4 +1,4 @@
-"""Router for the 9020 proxy"""
+"""URL routes for the 9020 proxy"""
 
 from __future__ import annotations
 
@@ -6,7 +6,9 @@ from django.urls import path
 
 from . import views
 
-scan_patterns = [
+app_name = "scan"
+
+urlpatterns = [
     path("xray-class/", views.classify_xray_proxy, name="classify_xray"),
     path(
         "lateral-fliprot/",

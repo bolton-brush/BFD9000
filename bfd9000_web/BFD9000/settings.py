@@ -105,6 +105,8 @@ class StorageURIs(enum.StrEnum):
     LOCAL = "local"
 
 
+MAX_IMAGE_SIZE = 100 * 1024 * 1024
+MAX_9020_SIZE = 50 * 1024 * 1024
 file_storage: URIStorageBackend[int]
 
 if DEBUG:
