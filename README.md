@@ -69,6 +69,12 @@ files such as markdown, yaml, toml, or sh. To run the formatter, use the `nix fm
 command at the root of the repo. Failing to pass the format check will fail the github
 checks run during a PR merge.
 
+Django-templated HTML files use the `.dj.html` extension (e.g. `base.dj.html`) rather
+than plain `.html`. This gives better support from formatters and linters: treefmt runs
+`djlint` on `*.dj.html` files (see `treefmtconfig` in `flake.nix`), and editor tooling
+can select the Django HTML language mode based on the extension. Any new template should
+use the `.dj.html` extension as well.
+
 Lastly, for the web component of this repo, `mypy` is additionally run for stronger type
 checking on the Django app, as `basedpyright` only does static analysis and cannot
 deeply analyse complex Django types. Run `mypy` from the root of the web directory in

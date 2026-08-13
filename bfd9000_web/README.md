@@ -161,4 +161,7 @@ If running within a docker container, `podman cp` the files into the container, 
 
 - The application settings can be found in `bfd9000/settings.py`.
 - URL routing is defined in `bfd9000/urls.py`.
+- HTML templates live in `archive/templates/archive/` and use the `.dj.html` extension
+  so that `djlint` (run via `nix fmt`, see the main `README.md`) and editor tooling
+  treat them as Django templates. Use `.dj.html` for any new template.
 - For deployment, refer to the WSGI configuration in `bfd9000/wsgi.py`.
