@@ -1,3 +1,4 @@
+# This docker compose exists purely for development, it is not deployed in any way
 name: bfd9000
 services:
   db:

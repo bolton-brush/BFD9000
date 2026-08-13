@@ -135,6 +135,11 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 Set both values in your environment (for example `bfd9000_web/.env` when using
 docker-compose).
 
+## Deployment
+
+Deployment is handled by the `bolton-brush/wingate.docker-configs` repository. The Ci
+within this repository is only responsible for building and publishing images to GHCR.
+
 ______________________________________________________________________
 
 ## Configuration: Environment Variables
