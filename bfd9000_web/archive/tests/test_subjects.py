@@ -49,7 +49,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_create_subject_minimal(self) -> None:
         """Should create subject with minimal required fields"""
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Doe",
             "humanname_given": "John",
@@ -66,7 +66,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_create_subject_full(self) -> None:
         """Should create subject with all optional fields"""
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Smith",
             "humanname_given": "Jane",
@@ -79,7 +79,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_create_subject_with_identifier(self) -> None:
         """Should attach identifier when identifier fields are provided."""
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Doe",
             "humanname_given": "John",
@@ -101,7 +101,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_create_subject_missing_required_field(self) -> None:
         """Should return 400 if required fields are missing"""
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Doe",
             # Missing humanname_given, gender, birth_date
@@ -111,7 +111,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_create_subject_invalid_gender(self) -> None:
         """Should return 400 for invalid gender value"""
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Doe",
             "humanname_given": "John",
@@ -137,7 +137,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="1995-05-15",
         )
 
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("results", response.data)
@@ -152,7 +152,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="2000-01-01",
         )
 
-        url = reverse("archive:subject-detail", kwargs={"pk": subject.id})
+        url = reverse("archive:api:subject-detail", kwargs={"pk": subject.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], subject.id)
@@ -161,7 +161,7 @@ class SubjectTests(CleanupAPITestCase):
 
     def test_get_subject_not_found(self) -> None:
         """Should return 404 for non-existent subject"""
-        url = reverse("archive:subject-detail", kwargs={"pk": 99999})
+        url = reverse("archive:api:subject-detail", kwargs={"pk": 99999})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -174,7 +174,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="2000-01-01",
         )
 
-        url = reverse("archive:subject-detail", kwargs={"pk": subject.id})
+        url = reverse("archive:api:subject-detail", kwargs={"pk": subject.id})
         data = {
             "humanname_family": "Updated",
             "humanname_given": "John",
@@ -194,7 +194,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="2000-01-01",
         )
 
-        url = reverse("archive:subject-detail", kwargs={"pk": subject.id})
+        url = reverse("archive:api:subject-detail", kwargs={"pk": subject.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -216,7 +216,7 @@ class SubjectTests(CleanupAPITestCase):
         )
 
         self.client.force_authenticate(user=superuser)
-        url = reverse("archive:subject-detail", kwargs={"pk": subject.id})
+        url = reverse("archive:api:subject-detail", kwargs={"pk": subject.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Subject.objects.filter(pk=subject.id).exists())
@@ -228,7 +228,7 @@ class SubjectTests(CleanupAPITestCase):
         )
         self.client.force_authenticate(user=regular_user)
 
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         data = {
             "humanname_family": "Doe",
             "humanname_given": "John",
@@ -270,7 +270,7 @@ class SubjectTests(CleanupAPITestCase):
         subject_doe.identifiers.add(id_doe)
         subject_smith.identifiers.add(id_smith)
 
-        base_url = reverse("archive:subject-list")
+        base_url = reverse("archive:api:subject-list")
 
         # Prefix 'SRCH' matches both
         response = self.client.get(base_url + "?search=SRCH")
@@ -308,7 +308,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="1995-05-15",
         )
 
-        url = reverse("archive:subject-list") + "?gender=male"
+        url = reverse("archive:api:subject-list") + "?gender=male"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -319,7 +319,7 @@ class SubjectTests(CleanupAPITestCase):
     def test_unauthenticated_access(self) -> None:
         """Should return 401/403 if not authenticated"""
         self.client.logout()
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         response = self.client.get(url)
         self.assertIn(
             response.status_code,
@@ -335,7 +335,7 @@ class SubjectTests(CleanupAPITestCase):
             birth_date="2000-01-01",
         )
 
-        url = reverse("archive:subject-list")
+        url = reverse("archive:api:subject-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 

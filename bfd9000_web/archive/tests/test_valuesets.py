@@ -195,20 +195,20 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_missing_type_parameter(self) -> None:
         """Should return 400 if 'type' parameter is missing"""
-        url = reverse("archive:valuesets-list")
+        url = reverse("archive:api:valuesets-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["error"], "Missing 'type' parameter")
 
     def test_unknown_valueset_type(self) -> None:
         """Should return 404 if 'type' parameter is unknown"""
-        url = reverse("archive:valuesets-list") + "?type=unknown_type"
+        url = reverse("archive:api:valuesets-list") + "?type=unknown_type"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_sex_options(self) -> None:
         """Should return sex options with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=sex_options"
+        url = reverse("archive:api:valuesets-list") + "?type=sex_options"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertGreater(len(response.data), 0)
@@ -228,7 +228,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_collections(self) -> None:
         """Should return collections with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=collections"
+        url = reverse("archive:api:valuesets-list") + "?type=collections"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -249,7 +249,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_record_types(self) -> None:
         """Should return record types with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=record_types"
+        url = reverse("archive:api:valuesets-list") + "?type=record_types"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -266,7 +266,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_orientations(self) -> None:
         """Should return orientations with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=orientations"
+        url = reverse("archive:api:valuesets-list") + "?type=orientations"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -283,7 +283,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_modalities(self) -> None:
         """Should return modalities with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=modalities"
+        url = reverse("archive:api:valuesets-list") + "?type=modalities"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -302,7 +302,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_procedures(self) -> None:
         """Should return procedures with correct structure"""
-        url = reverse("archive:valuesets-list") + "?type=procedures"
+        url = reverse("archive:api:valuesets-list") + "?type=procedures"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -318,7 +318,7 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_image_types(self) -> None:
         """Should return image types with correct structure."""
-        url = reverse("archive:valuesets-list") + "?type=image_types"
+        url = reverse("archive:api:valuesets-list") + "?type=image_types"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -332,8 +332,8 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_cross_contamination_orientations_vs_collections(self) -> None:
         """Orientations should not contain collection codes"""
-        url_orient = reverse("archive:valuesets-list") + "?type=orientations"
-        url_coll = reverse("archive:valuesets-list") + "?type=collections"
+        url_orient = reverse("archive:api:valuesets-list") + "?type=orientations"
+        url_coll = reverse("archive:api:valuesets-list") + "?type=collections"
 
         response_orient = self.client.get(url_orient)
         response_coll = self.client.get(url_coll)
@@ -351,8 +351,8 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_cross_contamination_orientations_vs_modalities(self) -> None:
         """Orientations should not contain modality codes"""
-        url_orient = reverse("archive:valuesets-list") + "?type=orientations"
-        url_mod = reverse("archive:valuesets-list") + "?type=modalities"
+        url_orient = reverse("archive:api:valuesets-list") + "?type=orientations"
+        url_mod = reverse("archive:api:valuesets-list") + "?type=modalities"
 
         response_orient = self.client.get(url_orient)
         response_mod = self.client.get(url_mod)
@@ -370,8 +370,8 @@ class ValuesetTests(CleanupAPITestCase):
 
     def test_cross_contamination_modalities_vs_collections(self) -> None:
         """Modalities should not contain collection codes"""
-        url_mod = reverse("archive:valuesets-list") + "?type=modalities"
-        url_coll = reverse("archive:valuesets-list") + "?type=collections"
+        url_mod = reverse("archive:api:valuesets-list") + "?type=modalities"
+        url_coll = reverse("archive:api:valuesets-list") + "?type=collections"
 
         response_mod = self.client.get(url_mod)
         response_coll = self.client.get(url_coll)
@@ -391,7 +391,7 @@ class ValuesetTests(CleanupAPITestCase):
     def test_unauthenticated_access(self) -> None:
         """Should return 401/403 if not authenticated"""
         self.client.logout()
-        url = reverse("archive:valuesets-list") + "?type=sex_options"
+        url = reverse("archive:api:valuesets-list") + "?type=sex_options"
         response = self.client.get(url)
         self.assertIn(
             response.status_code,

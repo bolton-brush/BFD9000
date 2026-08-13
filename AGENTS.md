@@ -64,6 +64,13 @@ the build system.
   dev-time and production runtime requirement in order to monkeypatch strong types at
   production time.
 
+## Templates
+
+- Django-templated HTML files use the `.dj.html` extension (not plain `.html`), which
+  gives better support from formatters and linters: treefmt runs `djlint` on
+  `*.dj.html`, and editors can select the Django HTML language mode from the extension.
+- Always use the `.dj.html` extension for new templates.
+
 For running linters, checkers, and tests, see `Code Cleanliness` within `README.md` in
 order to run `ruff`, `mypy`, and `basedpyright`.
 

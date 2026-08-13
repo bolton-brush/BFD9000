@@ -25,7 +25,8 @@ dev = [
   "python-magic>=0.4,<1.0",
   "result>=0.17.0",
   "trimesh>=4.12.2",
-  "whitenoise>=6.6,<7.0"
+  "whitenoise>=6.6,<7.0",
+  "bfd9020-ai-api-client"
 ]
 
 [project]
@@ -56,7 +57,8 @@ dependencies = [
   "python-magic>=0.4,<1.0",
   "result>=0.17.0",
   "trimesh>=4.12.2",
-  "whitenoise>=6.6,<7.0"
+  "whitenoise>=6.6,<7.0",
+  "bfd9020-ai-api-client"
 ]
 
 [tool.basedpyright]
@@ -107,3 +109,9 @@ ignore_errors = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["BFD9000*"]
+
+[tool.uv.sources]
+# Add a dummy dep dependency to allow nix to vendor the nix-build client from the other repo
+# For nix-less developement environments, obtain the built copy of the client and place it in
+# that folder instead.
+bfd9020-ai-api-client = {path = ".dummy_deps/bfd9020-ai-api-client"}

@@ -155,6 +155,9 @@ bfd9000_web/db
 
 # nix stuff
 result
+result-*
+out
+.dummy_deps
 
 # Box support
 .box_token

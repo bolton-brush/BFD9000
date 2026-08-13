@@ -28,7 +28,7 @@ from typing import (
 import magic
 import trimesh
 from BFD9000.conf import AuthUser
-from BFD9000.settings import StorageURIs
+from BFD9000.settings import MAX_IMAGE_SIZE, StorageURIs
 from django.core.files.base import ContentFile
 from django.db import transaction
 from rest_framework import serializers
@@ -1115,7 +1115,7 @@ class DigitalRecordUploadSerializer(serializers.ModelSerializer[DigitalRecord]):
             ValidationError: If value was not valid
 
         """
-        if (value.size or 0) > 100 * 1024 * 1024:
+        if (value.size or 0) > MAX_IMAGE_SIZE:
             logger.warning("Uploaded file was too large")
             raise serializers.ValidationError("File too large (max 100MB)")
 

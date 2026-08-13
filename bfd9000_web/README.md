@@ -138,7 +138,7 @@ that CAS uses for service and callback URLs. The values in `dot-env.example` are
 for the local Caddy workflow; update them when the CAS server or externally visible
 application origin differs.
 
-For production, `nix build .#dockerImage` is called directly and uploaded to the OCI
+For production, `nix build .#dockerImage` is built and streamed directly into the OCI
 store. You may run this manually to dissect the built docker-image if there is confusion
 about where items exist within the docker.
 
@@ -161,4 +161,7 @@ If running within a docker container, `podman cp` the files into the container, 
 
 - The application settings can be found in `bfd9000/settings.py`.
 - URL routing is defined in `bfd9000/urls.py`.
+- HTML templates live in `archive/templates/archive/` and use the `.dj.html` extension
+  so that `djlint` (run via `nix fmt`, see the main `README.md`) and editor tooling
+  treat them as Django templates. Use `.dj.html` for any new template.
 - For deployment, refer to the WSGI configuration in `bfd9000/wsgi.py`.

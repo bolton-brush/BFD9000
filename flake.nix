@@ -9,6 +9,7 @@
     pybuild.url = "github:pyproject-nix/build-system-pkgs";
     pyproject.url = "github:pyproject-nix/pyproject.nix";
     stl_thumb.url = "github:bolton-brush/STL-Thumb/release";
+    bfd9020.url = "github:bolton-brush/BFD9020/main";
   };
 
   outputs =
@@ -21,9 +22,20 @@
           inherit system;
         };
         python = pkgs.python313;
-        workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./bfd9000_web; };
+        hacks = pkgs.callPackage inputs.pyproject.build.hacks { };
+        workspace = inputs.uv2nix.lib.workspace.loadWorkspace {
+          workspaceRoot = ./bfd9000_web;
+        };
         overlay = workspace.mkPyprojectOverlay {
           sourcePreference = "wheel";
+        };
+        bfd9020-sdk = inputs.bfd9020.packages.${system}.app.client-sdk;
+        bfd9020-sdk-overlay = final: prev: {
+          # Adapt the standard Nixpkgs derivation into the uv2nix set!
+          bfd9020-ai-api-client = hacks.nixpkgsPrebuilt {
+            from = bfd9020-sdk;
+            prev = prev.bfd9020-ai-api-client; # preserves dependency linkages in the graph
+          };
         };
         pythonBase = pkgs.callPackage inputs.pyproject.build.packages {
           inherit python;
@@ -32,6 +44,7 @@
           pkgs.lib.composeManyExtensions [
             inputs.pybuild.overlays.wheel
             overlay
+            bfd9020-sdk-overlay
           ]
         );
         venv = pythonSet.mkVirtualEnv "venv" workspace.deps.default;
@@ -66,6 +79,12 @@
             shellcheck.enable = true;
             shfmt.enable = true;
             nixfmt.enable = true;
+            # Django html formatter
+            djlint = {
+              enable = true;
+              # Includes all .html files by default, but you can override includes if needed:
+              includes = [ "*.dj.html" ];
+            };
           };
           settings.formatter.shellcheck.excludes = [
             ".envrc"
@@ -110,6 +129,8 @@
               export PYTHONPATH="$PROJ_ROOT:${venvDev}/lib/*/site-packages:$PYTHONPATH"
               export LD_LIBRARY_PATH="${pkgs.file}/lib:$LD_LIBRARY_PATH"
               ln -sfn ${venvDev} $PROJ_ROOT/.venv
+              mkdir -p $PROJ_ROOT/.dummy_deps
+              ln -sfn ${bfd9020-sdk} $PROJ_ROOT/.dummy_deps/bfd9020-ai-api-client
             '';
           };
         };

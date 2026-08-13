@@ -69,6 +69,12 @@ files such as markdown, yaml, toml, or sh. To run the formatter, use the `nix fm
 command at the root of the repo. Failing to pass the format check will fail the github
 checks run during a PR merge.
 
+Django-templated HTML files use the `.dj.html` extension (e.g. `base.dj.html`) rather
+than plain `.html`. This gives better support from formatters and linters: treefmt runs
+`djlint` on `*.dj.html` files (see `treefmtconfig` in `flake.nix`), and editor tooling
+can select the Django HTML language mode based on the extension. Any new template should
+use the `.dj.html` extension as well.
+
 Lastly, for the web component of this repo, `mypy` is additionally run for stronger type
 checking on the Django app, as `basedpyright` only does static analysis and cannot
 deeply analyse complex Django types. Run `mypy` from the root of the web directory in
@@ -135,6 +141,11 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 Set both values in your environment (for example `bfd9000_web/.env` when using
 docker-compose).
 
+## Deployment
+
+Deployment is handled by the `bolton-brush/wingate.docker-configs` repository. The Ci
+within this repository is only responsible for building and publishing images to GHCR.
+
 ______________________________________________________________________
 
 ## Configuration: Environment Variables
@@ -152,7 +163,7 @@ be provided via the environment, a `.env` file, or via Docker Compose.
 | `CORS_ALLOWED_ORIGINS`      | No             | Comma-separated list of CORS-allowed origins (frontend integration).               | `http://localhost:5173,http://127.0.0.1:5173` |
 | `SCANNER_API_BASE`          | No             | Base URL for scanner-side API calls.                                               | `http://localhost:5000`                       |
 | `SCANNER_DEVICE_ID`         | No             | Scanner hardware ID string.                                                        | `scanner-001`                                 |
-| `BFD9020_BASE_URL`          | No             | Endpoint for the BFD9020 AI microservice (magic AI button).                        | `https://wingate.case.edu/bfd9020`            |
+| `BFD9020_BASE_URL`          | No             | Endpoint for the BFD9020 AI microservice (magic AI button).                        | `https://bfd9020:9020`                        |
 | `THUMBNAIL_MAX_WIDTH`       | No             | Maximum width for UI/API generated thumbnails (px).                                | `300`                                         |
 | `THUMBNAIL_MAX_HEIGHT`      | No             | Maximum height for UI/API generated thumbnails (px).                               | `300`                                         |
 | `THUMBNAIL_TARGET_BYTES`    | No             | Target file size for thumbnails, in bytes.                                         | `20480` (20 KB)                               |

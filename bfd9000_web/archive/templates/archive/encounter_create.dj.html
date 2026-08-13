@@ -1,111 +1,70 @@
-{% extends 'archive/base_index.html' %}
-
+{% extends 'archive/base_index.dj.html' %}
 {% block content %}
-<div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
-    <div class="max-w-2xl mx-auto w-full">
-        <div class="prose prose-sm mb-6">
-            <h2 class="!mt-0">New Encounter</h2>
-        </div>
-
-        <form id="encounter-form" class="space-y-4">
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Subject Identifier</span>
-                </label>
-                <input
-                    type="text"
-                    id="subject_id"
-                    name="subject_id"
-                    class="input input-bordered w-full"
-                    placeholder="Subject Identifier (e.g., B0001)"
-                    required
-                />
-                <label class="label">
-                    <span class="label-text-alt">Enter the subject this encounter belongs to</span>
-                </label>
+    <div class="flex-[1_1_0] flex flex-col overflow-x-auto p-8">
+        <div class="max-w-2xl mx-auto w-full">
+            <div class="prose prose-sm mb-6">
+                <h2 class="!mt-0">New Encounter</h2>
             </div>
-
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Encounter Date</span>
-                </label>
-                <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    class="input input-bordered w-full"
-                    required
-                />
-            </div>
-
-            <div class="form-control w-full">
-                <label class="label">
-                    <span class="label-text">Procedure</span>
-                </label>
-                <select id="procedure-code" class="select select-bordered w-full" required>
-                    <option value="">Loading procedures...</option>
-                </select>
-            </div>
-
-            <div class="form-control w-full">
-                <!-- <label class="label">
+            <form id="encounter-form" class="space-y-4">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Subject Identifier</span>
+                    </label>
+                    <input type="text"
+                           id="subject_id"
+                           name="subject_id"
+                           class="input input-bordered w-full"
+                           placeholder="Subject Identifier (e.g., B0001)"
+                           required />
+                    <label class="label">
+                        <span class="label-text-alt">Enter the subject this encounter belongs to</span>
+                    </label>
+                </div>
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Encounter Date</span>
+                    </label>
+                    <input type="date"
+                           id="date"
+                           name="date"
+                           class="input input-bordered w-full"
+                           required />
+                </div>
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Procedure</span>
+                    </label>
+                    <select id="procedure-code" class="select select-bordered w-full" required>
+                        <option value="">Loading procedures...</option>
+                    </select>
+                </div>
+                <div class="form-control w-full">
+                    <!-- <label class="label">
                     <span class="label-text">Age at Encounter (Optional)</span>
                 </label>
                 <div class="flex gap-2">
-                    <input
-                        type="number"
-                        id="age_years"
-                        name="age_years"
-                        class="input input-bordered flex-1"
-                        placeholder="Years"
-                        min="0"
-                        max="150"
-                    />
-                    <input
-                        type="number"
-                        id="age_months"
-                        name="age_months"
-                        class="input input-bordered flex-1"
-                        placeholder="Months"
-                        min="0"
-                        max="11"
-                    />
-                    <input
-                        type="number"
-                        id="age_days"
-                        name="age_days"
-                        class="input input-bordered flex-1"
-                        placeholder="Days"
-                        min="0"
-                        max="30"
-                    />
+                    <input type="number" id="age_years" name="age_years" class="input input-bordered flex-1" placeholder="Years" min="0" max="150" />
+                    <input type="number" id="age_months" name="age_months" class="input input-bordered flex-1" placeholder="Months" min="0" max="11" />
+                    <input type="number" id="age_days" name="age_days" class="input input-bordered flex-1" placeholder="Days" min="0" max="30" />
                 </div>
                 <label class="label">
                     <span class="label-text-alt">Specify age in years, months, and/or days</span>
                 </label>
-            </div> -->
-
-            <div
-                id="error-message"
-                class="alert alert-error hidden"
-                role="alert"
-            >
-                <span id="error-text"></span>
-            </div>
-
-            <div class="flex gap-4 pt-4">
-                <button type="submit" class="btn btn-primary" id="submit-btn">
-                    Create Encounter
-                </button>
-                <a href="{% url 'archive:encounters' %}" class="btn btn-ghost">Cancel</a>
-            </div>
-        </form>
+</div> -->
+                    <div id="error-message" class="alert alert-error hidden" role="alert">
+                        <span id="error-text"></span>
+                    </div>
+                    <div class="flex gap-4 pt-4">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Create Encounter</button>
+                        <a href="{% url 'archive:encounters' %}" class="btn btn-ghost">Cancel</a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 {% endblock %}
-
 {% block head %}
-<script>
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('encounter-form');
         const submitBtn = document.getElementById('submit-btn');
@@ -117,7 +76,7 @@
                 search: query,
                 page_size: '20',
             });
-            const response = await fetch((window.script_name || '') + `/api/subjects/?${params}`);
+            const response = await fetch("{% url 'archive:api:subject-list' %}?" + params);
             if (!response.ok) {
                 throw new Error(`Failed to search subjects: ${response.status}`);
             }
@@ -126,7 +85,7 @@
         }
 
         async function fetchValueset(type) {
-            const response = await fetch((window.script_name || '') + `/api/valuesets/?type=${type}`);
+            const response = await fetch("{% url 'archive:api:valuesets-list' %}?type=" + type);
             if (!response.ok) {
                 throw new Error(`Failed to fetch valueset: ${type}`);
             }
@@ -221,7 +180,7 @@
             }*/
 
             try {
-                const response = await fetch((window.script_name || '') + '/api/encounters/', {
+                const response = await fetch("{% url 'archive:api:encounter-list' %}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -269,5 +228,5 @@
 
         init();
     });
-</script>
+    </script>
 {% endblock %}

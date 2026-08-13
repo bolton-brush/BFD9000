@@ -64,13 +64,13 @@ long-term to support historical context or environmental correlation.
 
 ### Spec vs Implementation
 
-| Spec Field         | Backend Field                 | Notes                                                     |
-| ------------------ | ----------------------------- | --------------------------------------------------------- |
-| `encounter_id`     | `encounter`                   | Integer PK                                                |
-| `subject_id`       | N/A                           | Must join through encounter.subject                       |
-| `file_size`        | N/A                           | Must get from `imaging_study.source_file` if available    |
-| `image_type`       | N/A                           | Must derive from `imaging_study.source_file` extension    |
-| `acquisition_date` | `imaging_study.scan_datetime` | Via related imaging study                                 |
+| Spec Field         | Backend Field                 | Notes                                                      |
+| ------------------ | ----------------------------- | ---------------------------------------------------------- |
+| `encounter_id`     | `encounter`                   | Integer PK                                                 |
+| `subject_id`       | N/A                           | Must join through encounter.subject                        |
+| `file_size`        | N/A                           | Must get from `imaging_study.source_file` if available     |
+| `image_type`       | N/A                           | Must derive from `imaging_study.source_file` extension     |
+| `acquisition_date` | `imaging_study.scan_datetime` | Via related imaging study                                  |
 | `thumbnail_url`    | `thumbnail.url`               | Backend-qualified storage URI; retrieve through API action |
 | `image_url`        | `source_file.url`             | Backend-qualified storage URI; retrieve through API action |
 
@@ -85,6 +85,59 @@ subject info in records list, either:
 
 1. Make additional API calls per record
 1. Extend RecordSerializer to include nested data (recommended future work)
+
+## Scan / AI Classification Proxy API (BFD9020)
+
+### URL routing structure
+
+The DRF routers live in `archive/api/api.py` (not `archive/urls.py`), mounted at `/api/`
+under the `archive:api` namespace. The scan proxy lives in `archive/api/scan/scan.py`,
+included under that namespace as `archive:api:scan`, giving URL names such as
+`archive:api:scan:get_xray_info`. One exception: `POST /api/scan/tiff-preview/` predates
+the proxy, is registered directly in `archive/urls.py` as `archive:scan_tiff_preview`,
+and is unrelated to BFD9020.
+
+Templates reverse all of these with `{% url %}` instead of building URL strings in
+JavaScript; see "Client-side URL Construction" in `api_requirements.md`.
+
+### Proxy endpoints
+
+Four DRF function-based views (`@api_view(["POST"])` with `IsAuthenticated`) in
+`archive/api/scan/views.py` forward a multipart `image` file field to the internal
+BFD9020 FastAPI service and pass the classification JSON back to the browser:
+
+| Endpoint                          | URL name                                    | Upstream BFD9020 operation |
+| --------------------------------- | ------------------------------------------- | -------------------------- |
+| `POST /api/scan/xray-class/`      | `archive:api:scan:classify_xray`            | `POST /xray-class`         |
+| `POST /api/scan/lateral-fliprot/` | `archive:api:scan:classify_lateral_fliprot` | `POST /lateral-fliprot`    |
+| `POST /api/scan/frontal-fliprot/` | `archive:api:scan:classify_frontal_fliprot` | `POST /frontal-fliprot`    |
+| `POST /api/scan/xray-info/`       | `archive:api:scan:get_xray_info`            | `POST /xray-info`          |
+
+Implementation details:
+
+- Calls are made with the auto-generated `bfd9020-ai-api-client` OpenAPI SDK (a
+  synchronous `httpx` client with a 30s timeout and SSL verification disabled for the
+  internal service). In nix/direnv setups the SDK is symlinked into
+  `bfd9000_web/.dummy_deps/bfd9020-ai-api-client` by the flake shell hook; nix-less
+  setups must place the built SDK there themselves (see `[tool.uv.sources]` in
+  `pyproject.toml`).
+- The upstream base URL comes from the `BFD9020_BASE_URL` setting (default
+  `http://bfd9020:9020`, the compose-internal hostname; previously the browser-called
+  `https://wingate.case.edu/bfd9020`).
+- **Success**: upstream `200 OK` JSON is returned to the browser unmodified
+  (`prediction`, `probability`, `all_predictions`, `additional_info`).
+- **Errors**: these views deliberately use the DRF stack rather than
+  `login_required`/plain `JsonResponse`, so all errors follow the shared
+  `{"error": {"code", "message", "details"}}` contract via
+  `BFD9000.exceptions.custom_exception_handler`. Anonymous requests get `403`
+  (`PERMISSION_DENIED`) as JSON instead of an HTML login redirect; missing/oversized
+  `image` (`> MAX_9020_SIZE`, 50MB) → `400` (`VALIDATION_ERROR`); unreachable backend →
+  `502` (`UPSTREAM_UNAVAILABLE`); upstream non-200 or validation error → `502`
+  (`UPSTREAM_ERROR`) with `error.details.upstream_status`/`body` preserved.
+- Before this change, the browser called the BFD9020 service directly using an
+  `ai_base_url` template variable. That variable is gone; the scan page now fetches the
+  Django proxy URLs, so the upstream service never needs to be reachable (or
+  authenticated) from the client network.
 
 ## Recommendations
 
