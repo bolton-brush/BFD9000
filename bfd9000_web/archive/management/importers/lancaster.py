@@ -6,27 +6,33 @@ import csv
 import re
 from dataclasses import dataclass
 from datetime import date, timedelta
-from pathlib import Path
-from typing import Iterable, Optional, Tuple
+from typing import TYPE_CHECKING, final
 
 from django.core.management.base import CommandError
 from django.db import transaction
 
-from archive.management.importers.base import BaseImporter, ImportStats
-from archive.models import Coding, Encounter, Subject
+from archive.management.importers.base import BaseImporter, ImportStats, Writeable
+from archive.models import Coding, Collection, Encounter, Subject
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
 
 
 @dataclass
 class LancasterStats(ImportStats):
     """Import counters specific to the Lancaster dataset."""
+
     encounters_created: int = 0
     encounters_skipped: int = 0
     partial_dates: int = 0
     uncertain_dates: int = 0
 
 
+@final
 class LancasterImporter(BaseImporter):
     """Import Lancaster subjects and derived encounters from CSV data."""
+
     DATE_COLUMNS = (7, 9, 11, 13, 15, 17)
 
     def __init__(
@@ -34,15 +40,18 @@ class LancasterImporter(BaseImporter):
         *,
         dry_run: bool,
         include_names: bool,
-        stdout,
-        stderr,
+        stdout: Writeable,
+        stderr: Writeable,
         identifier_prefix: str,
         identifier_width: int,
         identifier_system: str,
         collection_short_name: str,
-        collection_full_name: Optional[str],
+        collection_full_name: str | None,
     ) -> None:
-        super().__init__(dry_run=dry_run, include_names=include_names, stdout=stdout, stderr=stderr)
+        """Initializes the Lancaster Data Importer"""
+        super().__init__(
+            dry_run=dry_run, include_names=include_names, stdout=stdout, stderr=stderr
+        )
         self.identifier_prefix = identifier_prefix
         self.identifier_width = identifier_width
         self.identifier_system = identifier_system
@@ -50,7 +59,12 @@ class LancasterImporter(BaseImporter):
         self.collection_full_name = collection_full_name
 
     def run(self, file_path: Path) -> None:
-        """Execute the Lancaster import from the provided CSV path."""
+        """Execute the Lancaster import from the provided CSV path.
+
+        Raises:
+            CommandError: If reading the csv file has any issues
+
+        """
         if not file_path.exists():
             raise CommandError(f"File not found: {file_path}")
 
@@ -74,7 +88,9 @@ class LancasterImporter(BaseImporter):
 
             with transaction.atomic():
                 for row in reader:
-                    if not row or all(cell is None or str(cell).strip() == "" for cell in row):
+                    if not row or all(
+                        cell is None or not str(cell).strip() for cell in row
+                    ):
                         continue
                     try:
                         self._import_row(row, index, collection, procedure_code, stats)
@@ -90,7 +106,8 @@ class LancasterImporter(BaseImporter):
 
         self._print_summary(stats)
 
-    def _build_header_index(self, header: Iterable[str]) -> dict[str, int]:
+    @staticmethod
+    def _build_header_index(header: Iterable[str]) -> dict[str, int]:
         normalized = [str(value).strip().lower() for value in header]
         required = ["last", "first", "pt. no.", "sex", "dob"]
         missing = [name for name in required if name not in normalized]
@@ -102,7 +119,7 @@ class LancasterImporter(BaseImporter):
         self,
         row: list[str],
         index: dict[str, int],
-        collection,
+        collection: Collection,
         procedure_code: Coding,
         stats: LancasterStats,
     ) -> None:
@@ -113,7 +130,9 @@ class LancasterImporter(BaseImporter):
         birth_date_value = self._cell_str(row[index["dob"]])
 
         if not patient_number or not birth_date_value:
-            raise CommandError(f"Skipping row with missing required values: {patient_number}")
+            raise CommandError(
+                f"Skipping row with missing required values: {patient_number}"
+            )
 
         subject_identifier = self._format_identifier(patient_number)
         subject = self._get_subject_by_identifier(subject_identifier)
@@ -181,7 +200,7 @@ class LancasterImporter(BaseImporter):
         month = int(match.group(1))
         day = int(match.group(2))
         year = int(match.group(3))
-        if year < 100:
+        if year < 100:  # noqa: PLR2004
             year = self._expand_two_digit_year(year)
         return date(year, month, day)
 
@@ -193,7 +212,7 @@ class LancasterImporter(BaseImporter):
         procedure_code: Coding,
         stats: LancasterStats,
     ) -> None:
-        seen = set()
+        seen: set[tuple[date, str, str]] = set()
         for column_index in self.DATE_COLUMNS:
             if column_index >= len(row):
                 continue
@@ -225,7 +244,7 @@ class LancasterImporter(BaseImporter):
                     stats.encounters_skipped += 1
                     continue
 
-                Encounter.objects.create(
+                _ = Encounter.objects.create(
                     subject=subject,
                     actual_period_start=encounter_date,
                     procedure_code=procedure_code,
@@ -235,54 +254,62 @@ class LancasterImporter(BaseImporter):
                 )
                 stats.encounters_created += 1
 
+    @classmethod
     def _parse_encounter_token(
-        self,
+        cls,
         token: str,
         birth_date: date,
-    ) -> Optional[Tuple[date, str, bool, str]]:
+    ) -> tuple[date, str, bool, str] | None:
         raw = token.strip()
         if not raw:
             return None
 
         if "age:" in raw.lower():
-            return self._parse_age_token(raw, birth_date)
+            return cls._parse_age_token(raw, birth_date)
 
         match = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{2,4})$", raw)
         if match:
-            month, day, year = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
-            if year < 100:
-                year = self._expand_two_digit_year(year)
+            month, day, year = (
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)),
+            )
+            if year < 100:  # noqa: PLR2004
+                year = cls._expand_two_digit_year(year)
             return date(year, month, day), "day", False, raw
 
         match = re.match(r"^(\d{1,2})/(\d{2,4})$", raw)
         if match:
             month, year = (int(match.group(1)), int(match.group(2)))
-            if year < 100:
-                year = self._expand_two_digit_year(year)
-            return self._midpoint_for_month(year, month), "month", True, raw
+            if year < 100:  # noqa: PLR2004
+                year = cls._expand_two_digit_year(year)
+            return cls._midpoint_for_month(year, month), "month", True, raw
 
         match = re.match(r"^(\d{4})$", raw)
         if match:
             year = int(match.group(1))
-            return self._midpoint_date_for_year(year), "year", True, raw
+            return cls._midpoint_date_for_year(year), "year", True, raw
 
         match = re.match(r"^(\d{1,2})/\?/(\d{2,4})$", raw)
         if match:
             month, year = (int(match.group(1)), int(match.group(2)))
-            if year < 100:
-                year = self._expand_two_digit_year(year)
-            return self._midpoint_for_month(year, month), "month", True, raw
+            if year < 100:  # noqa: PLR2004
+                year = cls._expand_two_digit_year(year)
+            return cls._midpoint_for_month(year, month), "month", True, raw
 
         match = re.match(r"^\?/\?/(\d{2,4})$", raw)
         if match:
             year = int(match.group(1))
-            if year < 100:
-                year = self._expand_two_digit_year(year)
-            return self._midpoint_date_for_year(year), "year", True, raw
+            if year < 100:  # noqa: PLR2004
+                year = cls._expand_two_digit_year(year)
+            return cls._midpoint_date_for_year(year), "year", True, raw
 
         return None
 
-    def _parse_age_token(self, raw: str, birth_date: date) -> Optional[Tuple[date, str, bool, str]]:
+    @classmethod
+    def _parse_age_token(
+        cls, raw: str, birth_date: date
+    ) -> tuple[date, str, bool, str] | None:
         match = re.search(
             r"age:\s*(\d+)\s*(years?|yrs?|y|months?|mos?|mo|days?|d)",
             raw.lower(),
@@ -294,29 +321,37 @@ class LancasterImporter(BaseImporter):
 
         if unit.startswith("y"):
             target_year = birth_date.year + value
-            return self._midpoint_date_for_year(target_year), "year", True, raw
+            return cls._midpoint_date_for_year(target_year), "year", True, raw
         if unit.startswith("m"):
-            target = self._add_months(birth_date, value)
-            return self._midpoint_for_month(target.year, target.month), "month", True, raw
+            target = cls._add_months(birth_date, value)
+            return (
+                cls._midpoint_for_month(target.year, target.month),
+                "month",
+                True,
+                raw,
+            )
         if unit.startswith("d"):
             return birth_date + timedelta(days=value), "day", True, raw
         return None
 
-    def _add_months(self, value: date, months: int) -> date:
+    @classmethod
+    def _add_months(cls, value: date, months: int) -> date:
         year = value.year + (value.month - 1 + months) // 12
         month = (value.month - 1 + months) % 12 + 1
-        return date(year, month, min(value.day, self._days_in_month(year, month)))
+        return date(year, month, min(value.day, cls._days_in_month(year, month)))
 
-    def _midpoint_for_month(self, year: int, month: int) -> date:
-        mid_day = (self._days_in_month(year, month) + 1) // 2
+    @classmethod
+    def _midpoint_for_month(cls, year: int, month: int) -> date:
+        mid_day = (cls._days_in_month(year, month) + 1) // 2
         return date(year, month, mid_day)
 
-    def _days_in_month(self, year: int, month: int) -> int:
+    @staticmethod
+    def _days_in_month(year: int, month: int) -> int:
         next_month = date(year, month, 1).replace(day=28) + timedelta(days=4)
         last_day = next_month - timedelta(days=next_month.day)
         return last_day.day
 
-    def _get_subject_by_identifier(self, value: str) -> Optional[Subject]:
+    def _get_subject_by_identifier(self, value: str) -> Subject | None:
         return (
             Subject.objects.filter(
                 identifiers__system=self.identifier_system,

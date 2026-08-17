@@ -1,10 +1,13 @@
 # bbc2dcm: convert scanned images from the Bolton-Brush Collection to DICOM
 
-The scanning devices used to acquire and digitize the BBC were not DICOM compatible and produced TIFF, PDF and STL files. the tools in this directory aid the conversion to DICOM.
+The scanning devices used to acquire and digitize the BBC were not DICOM compatible and
+produced TIFF, PDF and STL files. the tools in this directory aid the conversion to
+DICOM.
 
 PoC package to convert BBGSC TIFFs into JPEG2000 encapsulated DICOMs.
 
-The module is purposely divided into modules with division of concerns, so that it may facilitate re-use and inclusion in the BFD9000 API.
+The module is purposely divided into modules with division of concerns, so that it may
+facilitate re-use and inclusion in the BFD9000 API.
 
 ## Architecture
 
@@ -24,6 +27,7 @@ pip install -r requirements.txt
 ```
 
 Required packages:
+
 - `imagecodecs` - JPEG2000 encoding/decoding
 - `numpy` - Array processing
 - `pillow` - Image processing
@@ -32,11 +36,11 @@ Required packages:
 ## Installation
 
 1. Clone or download the BFD9000 repository
-2. Navigate to the bbc2dcm directory:
+1. Navigate to the bbc2dcm directory:
    ```bash
    cd BFD9000/bbc2dcm
    ```
-3. Install dependencies:
+1. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
@@ -54,16 +58,19 @@ python -m bfd9000_dicom.tiff2dcm input.tif output.dcm [options]
 #### Basic Usage
 
 Convert a TIFF file to DICOM without compression:
+
 ```bash
 python -m bfd9000_dicom.tiff2dcm B0013LM18y01m.tif B0013LM18y01m.dcm
 ```
 
 Convert with JPEG2000 lossless compression:
+
 ```bash
 python -m bfd9000_dicom.tiff2dcm B0013LM18y01m.tif B0013LM18y01m.dcm --compress
 ```
 
 Use custom DICOM metadata from JSON file:
+
 ```bash
 python -m bfd9000_dicom.tiff2dcm input.tif output.dcm --dicom_json metadata.json
 ```
@@ -94,17 +101,20 @@ convert_tiff_to_dicom('input.tif', 'output.dcm', dicom_json='metadata.json')
 
 ## File Naming Convention
 
-The package expects TIFF files to follow a specific naming convention for automatic metadata extraction:
+The package expects TIFF files to follow a specific naming convention for automatic
+metadata extraction:
 
 **Format**: `[PatientID][ImageType][Sex][Age].tif`
 
 **Example**: `B0013LM18y01m.tif`
+
 - `B0013`: Patient ID (5 characters)
 - `L`: Image type (1 character)
 - `M`: Patient sex (1 character - M/F)
 - `18y01m`: Patient age (format: XXyYYm - years and months)
 
-The age is automatically converted to DICOM format (total months with 'M' suffix, e.g., "217M").
+The age is automatically converted to DICOM format (total months with 'M' suffix, e.g.,
+"217M").
 
 ## DICOM Metadata
 
@@ -115,12 +125,15 @@ The package automatically generates standard DICOM tags including:
 - **Patient Information**: Patient ID, Name, Sex, Age
 - **Study Information**: Study/Series/SOP Instance UIDs
 - **Image Information**: Rows, Columns, Bits Allocated, Pixel Spacing
-- **Device Information**: Secondary Capture device details (Vidar DosimetryPRO Advantage)
-- **Bolton-Brush Specific**: Modality (RG), Conversion Type (DF), deidentification markers
+- **Device Information**: Secondary Capture device details (Vidar DosimetryPRO
+  Advantage)
+- **Bolton-Brush Specific**: Modality (RG), Conversion Type (DF), deidentification
+  markers
 
 ### Custom Metadata via JSON
 
-You can provide additional DICOM metadata via a JSON file. See `tests/test.dcm.json` for an example format:
+You can provide additional DICOM metadata via a JSON file. See `tests/test.dcm.json` for
+an example format:
 
 ```json
 {
@@ -138,12 +151,14 @@ You can provide additional DICOM metadata via a JSON file. See `tests/test.dcm.j
 ## Image Processing
 
 ### Supported Formats
+
 - **Input**: TIFF files with various bit depths and color modes
 - **Color Modes**: L (grayscale), RGB, RGBA→RGB, LA→L, P→RGB
 - **Bit Depths**: 8-bit and 16-bit
 - **Output**: DICOM with optional JPEG2000 lossless compression
 
 ### Compression Options
+
 - **Uncompressed**: Raw pixel data (default)
 - **JPEG2000 Lossless**: Compressed pixel data with no quality loss (`--compress` flag)
 
@@ -165,6 +180,7 @@ python -m pytest tests/
 ```
 
 Or run individual test files:
+
 ```bash
 python -m unittest tests.test_tiff2dcm
 python -m unittest tests.test_dicom_tags
@@ -173,6 +189,7 @@ python -m unittest tests.test_dicom_tags
 ## Examples
 
 ### Example 1: Batch Conversion
+
 ```bash
 # Convert multiple files with compression
 for file in *.tif; do
@@ -181,6 +198,7 @@ done
 ```
 
 ### Example 2: Custom Metadata
+
 ```python
 from bfd9000_dicom.tiff2dcm import convert_tiff_to_dicom
 
@@ -196,10 +214,11 @@ convert_tiff_to_dicom(
 ## Output
 
 The conversion process will:
+
 1. Extract patient metadata from the filename
-2. Load and process the TIFF image
-3. Generate required DICOM metadata
-4. Apply optional JPEG2000 compression
-5. Save the resulting DICOM file
+1. Load and process the TIFF image
+1. Generate required DICOM metadata
+1. Apply optional JPEG2000 compression
+1. Save the resulting DICOM file
 
 Success message: `"Saved DICOM file at [output_path]"`

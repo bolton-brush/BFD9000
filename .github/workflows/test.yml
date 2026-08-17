@@ -1,47 +1,23 @@
-name: Run Django Tests
-# This uses nix to install all the dependencies for the dev shell.
-# AI should know how to fix it.
-
+name: Run All Tests
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
-  # Only run when a review is requested on a PR (not on push, open, etc)
   pull_request:
-    types: [review_requested]
-
+    types:
+      - opened
+      - ready_for_review
+      - review_requested
+      - synchronize
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install Nix
-        uses: cachix/install-nix-action@v27
-
-      - name: Set up Nix Flake environment
-        run: nix develop --command true
-
-      - name: Run Django tests
+        uses: cachix/install-nix-action@v31
+      - name: Run All tests
         run: |
-          nix develop --command python bfd9000_web/manage.py test --verbosity=2
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image (no push)
-        # Build only to verify the Dockerfile is valid; image is discarded after this job.
-        uses: docker/build-push-action@v5
-        with:
-          context: ./bfd9000_web
-          file: ./bfd9000_web/Dockerfile
-          push: false
+          nix flake check --keep-going

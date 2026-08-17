@@ -1,5 +1,4 @@
-"""
-Seed all required ValueSets and Codings.
+"""Seed all required ValueSets and Codings.
 
 This migration replaces the historical chain of seeding migrations (0002–0015
 from the pre-refactor history). All static coded values required at startup or
@@ -10,7 +9,6 @@ at runtime by the `import_valuesets` management command from the external FHIR
 $expand endpoint (see constants.VALUESET_EXPAND_URLS).
 """
 from django.db import migrations
-
 
 SCT = "http://snomed.info/sct"
 DCM = "http://dicom.nema.org/resources/ontology/DCM"

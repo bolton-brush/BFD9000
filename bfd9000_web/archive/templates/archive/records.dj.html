@@ -1,63 +1,59 @@
-{% extends 'archive/base_index.html' %} {% block content %}
-<div class="flex-[1_1_0] flex flex-col overflow-auto">
-    <div class="bg-base-200 p-3 border-b border-base-300">
-        <div class="flex gap-2 items-center">
-            <input
-                type="text"
-                id="search-input"
-                placeholder="Search by identifier (subject, type...)"
-                class="input input-bordered input-sm flex-1 max-w-md"
-            />
-            <button id="search-button" class="btn btn-sm btn-primary">
-                Search
-            </button>
-            <button id="clear-search-button" class="btn btn-sm btn-ghost">
-                Clear
-            </button>
+{% extends 'archive/base_index.dj.html' %}
+{% block content %}
+    <div class="flex-[1_1_0] flex flex-col overflow-auto">
+        <div class="bg-base-200 p-3 border-b border-base-300">
+            <div class="flex gap-2 items-center">
+                <input type="text"
+                       id="search-input"
+                       placeholder="Search by identifier (subject, type...)"
+                       class="input input-bordered input-sm flex-1 max-w-md" />
+                <button id="search-button" class="btn btn-sm btn-primary">Search</button>
+                <button id="clear-search-button" class="btn btn-sm btn-ghost">Clear</button>
+            </div>
+        </div>
+        <div class="min-w-0 flex-[1_1_0] overflow-y-auto">
+            <table class="table table-xs md:table-sm lg:table-md table-pin-rows table-zebra">
+                <!-- head -->
+                <thead>
+                    <tr>
+                        <th>Record ID</th>
+                        <th>Record Type</th>
+                        <th>Modality</th>
+                        <th>Age</th>
+                        <th>Subject</th>
+                        <th>Encounter</th>
+                        <th>File Size</th>
+                    </tr>
+                </thead>
+                <tbody id="record_table_body">
+                    {% for _ in ' ' %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="flex w-full gap-4">
+                                    <div class="skeleton h-[1lh] w-1/3"></div>
+                                    <div class="skeleton h-[1lh] grow"></div>
+                                    <div class="skeleton h-[1lh] w-1/2"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="bg-base-300 p-2 flex items-center gap-3">
+            <a href="{% url 'archive:record_create' %}"
+               class="btn btn-primary rounded-full">Add Record</a>
+            <div class="grow"></div>
+            <span class="text-sm text-base-content/60">
+                <span id="record-count-badge"></span>
+                <span class="ml-1">records</span>
+            </span>
         </div>
     </div>
-    <div class="min-w-0 flex-[1_1_0] overflow-y-auto">
-        <table
-            class="table table-xs md:table-sm lg:table-md table-pin-rows table-zebra"
-        >
-            <!-- head -->
-            <thead>
-                <tr>
-                    <th>Record ID</th>
-                    <th>Record Type</th>
-                    <th>Modality</th>
-                    <th>Age</th>
-                    <th>Subject</th>
-                    <th>Encounter</th>
-                    <th>File Size</th>
-                </tr>
-            </thead>
-            <tbody id="record_table_body">
-                {% for _ in ' ' %}
-                <tr>
-                    <td colspan="7">
-                        <div class="flex w-full gap-4">
-                            <div class="skeleton h-[1lh] w-1/3"></div>
-                            <div class="skeleton h-[1lh] grow"></div>
-                            <div class="skeleton h-[1lh] w-1/2"></div>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="bg-base-300 p-2 flex items-center gap-3">
-        <a href="{% url 'archive:record_create' %}" class="btn btn-primary rounded-full">Add Record</a>
-        <div class="grow"></div>
-        <span class="text-sm text-base-content/60">
-            <span id="record-count-badge"></span>
-            <span class="ml-1">records</span>
-        </span>
-    </div>
-</div>
-{% endblock %} {% block head %} {{ block.super }}
-<script>
+{% endblock %}
+{% block head %}
+    {{ block.super }}
+    <script>
     // ========================================
     // DATA LAYER - Real API Implementation
     // ========================================
@@ -70,7 +66,7 @@
      * @param {string} params.encounter - Filter by encounter PK
      * @param {number} params.page - Page number (1-indexed)
      * @param {number} params.page_size - Number of items per page
-     * @returns {Promise<Object>} Response with { count, next, previous, results }
+     * @returns {Promise<object>} Response with { count, next, previous, results }
      */
     async function fetchRecords(params = {}) {
         const { search = "", page = 1, page_size = 20, ...extra } = params;
@@ -89,7 +85,7 @@
             }
         }
 
-        const response = await fetch((window.script_name || '') + `/api/records/?${urlParams}`);
+        const response = await fetch("{% url 'archive:api:digitalrecord-list' %}?" + urlParams);
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
@@ -146,13 +142,17 @@
                 recordBtn.textContent = record.identifier_str || record.id;
                 recordBtn.onclick = () => {
                     // Navigate to record detail page
-                    window.location.href = (window.script_name || '') + `/records/${record.id}/`;
+                    window.location.href =
+                      "{% url 'archive:record_detail' record_id='0' %}".replace('0', record.id);
                 };
                 recordId.appendChild(recordBtn);
 
                 // Record Type column (display value with code as tooltip)
                 const recordType = document.createElement("td");
-                recordType.textContent = record.record_type?.display || record.record_type?.code || "-";
+                recordType.textContent =
+                    record.record_type?.display ||
+                    record.record_type?.code ||
+                    "-";
                 if (record.record_type?.code) {
                     recordType.title = record.record_type.code;
                 }
@@ -174,9 +174,11 @@
                 const subject = document.createElement("td");
                 const subjectBtn = document.createElement("button");
                 subjectBtn.className = "btn btn-soft btn-xs";
-                subjectBtn.textContent = record.subject_identifier || record.subject_id || "-";
+                subjectBtn.textContent =
+                    record.subject_identifier || record.subject_id || "-";
                 subjectBtn.onclick = () =>
-                    (window.location.href = (window.script_name || '') + `/encounters/?subject=${record.subject_id}`);
+                    (window.location.href =
+                        "{% url 'archive:encounters' %}?subject=" + record.subject_id);
                 subject.appendChild(subjectBtn);
 
                 // Encounter ID column with button — filters records for this encounter
@@ -187,7 +189,8 @@
                 encounterBtn.onclick = () => {
                     const params = new URLSearchParams();
                     params.set("encounter", record.encounter_id);
-                    window.location.href = (window.script_name || '') + `/records/?${params.toString()}`;
+                    window.location.href =
+                      "{% url 'archive:records' %}?" + params.toString();;
                 };
                 encounter.appendChild(encounterBtn);
 
@@ -204,7 +207,7 @@
                     age,
                     subject,
                     encounter,
-                    fileSize
+                    fileSize,
                 );
                 return row;
             });
@@ -221,5 +224,5 @@
         tableManager.init();
         attachSearchTooltip();
     });
-</script>
+    </script>
 {% endblock %}

@@ -1,8 +1,8 @@
+# This docker compose exists purely for development, it is not deployed in any way
 name: bfd9000
 services:
   db:
     image: postgres:17-alpine
-    container_name: bfd9000_db
     environment:
       POSTGRES_DB: bfd9000
       POSTGRES_USER: bfd9000
@@ -15,23 +15,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
+    # A dev-time decision to expose the DB, not necessary for deploys
+    ports:
+      - "127.0.0.1:5432:5432"
   bfd9000:
-    image: ghcr.io/open-ortho/edu.case.bfd9000:local
-    container_name: bfd9000
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # image: ghcr.io/bolton-brush/BFD9000:staging
+    image: localhost/bfd9000:build
+    secrets:
+      - source: box_config
+        target: /run/secrets/box_config.json
+    # Also a dev-time decision. This is NOT the final endpoint for production
     ports:
       - "127.0.0.1:9000:9000"
     depends_on:
       db:
         condition: service_healthy
-    # env_file:
-    #   - .env
+    env_file:
+      - .env
     volumes:
       # Keep media files (uploads) persistent
-      - media_volume:/app/media
+      - media_volume:/media
     environment:
       - DEBUG=True
       - SECRET_KEY=dev_secret_key
@@ -45,38 +48,56 @@ services:
       - DB_PASSWORD=bfd9000_dev
       - DB_HOST=db
       - DB_PORT=5432
+      - DJANGO_MEDIA_ROOT=/media
+      - BOX_JWT_CONFIG_FILE=/run/secrets/box_config.json
       # Local mode (no proxy, direct access at http://localhost:9000/):
       # - DJANGO_FORCE_SCRIPT_NAME=
       # - SCRIPT_NAME=
 
       # Subpath emulation mode (access app at http://localhost:9000/bfd9000/):
       # Enable BOTH lines below to emulate a proxy-mounted prefix locally.
-      - DJANGO_FORCE_SCRIPT_NAME=/bfd9000
-      - SCRIPT_NAME=/bfd9000
-      - BFD9020_BASE_URL=http://localhost:9020
+      # - DJANGO_FORCE_SCRIPT_NAME=/bfd9000
+      # - SCRIPT_NAME=/bfd9000
+      - BFD9020_BASE_URL=http://bfd9020:9020
       # - BFD9020_BASE_URL=https://wingate.case.edu/bfd9020
-      
-      - SCANNER_API_BASE=http://127.0.0.1:9010
 
+      - SCANNER_API_BASE=http://127.0.0.1:9010
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # These are the production ports, absolutely necessary for production
+    ports:
+      - "8000:80"
+      - "4430:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - bfd9000
   bfd9020:
-    image: ghcr.io/open-ortho/edu.case.bfd9020:local
-    container_name: bfd9020
+    image: localhost/bfd9020:build
+    # Ports are not necessary to expose in production, this is just for dev convenience
     ports:
       - "127.0.0.1:9020:9020"
+    tmpfs: "/tmp"
     environment:
       LOG_LEVEL: "INFO"
       ROOT_PATH: ""
       ENABLE_DOCS: "true"
-
+      ROOT_DOMAIN: "bfd9020"
   mock-bfd9010:
     image: mock-bfd9010:local
-    container_name: mock_bfd9010
     build:
       context: ../dev_tools/mock_bfd9010
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:9010:9010"
-
+secrets:
+  box_config:
+    file: ./box_config.json
 volumes:
   media_volume:
   postgres_data:
+  caddy_data:
+  caddy_config:

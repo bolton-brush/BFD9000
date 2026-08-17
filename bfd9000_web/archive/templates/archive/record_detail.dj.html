@@ -1,0 +1,370 @@
+{% extends 'archive/base_index.dj.html' %}
+{% block content %}
+    <div class="flex-[1_1_0] flex flex-col overflow-auto p-6">
+        <!-- Header -->
+        <div class="mb-4">
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'archive:records' %}" class="btn btn-sm btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                    Back to Records
+                </a>
+                <h1 class="text-2xl font-bold" id="page-title">
+                    Record #<span id="record-id">{{ record_id }}</span>
+                </h1>
+            </div>
+            <div id="loading" class="text-base-content/60">Loading record details...</div>
+            <div id="error" class="alert alert-error hidden"></div>
+        </div>
+        <!-- Main Content -->
+        <div id="content"
+             class="hidden grid grid-cols-1 lg:grid-cols-[20rem_1fr] gap-6 flex-1">
+            <!-- Left: Image -->
+            <div class="card bg-base-200 shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Thumbnail</h2>
+                    <div class="flex items-center justify-center bg-base-300 rounded">
+                        <img id="record-image"
+                             src=""
+                             alt="Record thumbnail"
+                             class="max-w-full max-h-[600px] object-contain rounded" />
+                    </div>
+                    <button id="download-original-btn" class="btn btn-primary btn-sm mt-2">Download Original</button>
+                </div>
+            </div>
+            <!-- Right: Details -->
+            <div class="flex flex-col gap-6">
+                <!-- Subject & Encounter Info -->
+                <div class="card bg-base-200 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Subject & Encounter</h2>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Subject ID</th>
+                                        <td id="subject-id">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Encounter ID</th>
+                                        <td id="encounter-id">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Age at Encounter</th>
+                                        <td id="age-at-encounter">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Record Details -->
+                <div class="card bg-base-200 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Record Details</h2>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Record Type</th>
+                                        <td id="record-type">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Created</th>
+                                        <td id="created-at">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-base-200 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Archived Locations</h2>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Endpoint</th>
+                                        <th>Type</th>
+                                        <th>Address</th>
+                                        <th>Assigned ID</th>
+                                        <th>Status</th>
+                                        <th>Archived At</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="archive-locations-body">
+                                    <tr>
+                                        <td colspan="6" class="text-base-content/60">No archived locations</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Series & Acquisition Details -->
+                <div class="card bg-base-200 shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Series & Acquisition</h2>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Modality</th>
+                                        <td id="modality">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Patient Orientation</th>
+                                        <td id="patient-orientation">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Acquisition</th>
+                                        <td id="acquisition-datetime">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Operator</th>
+                                        <td id="scan-operator">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Scanner Details -->
+                <div class="card bg-base-200 shadow" id="scanner-details-card">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Scanner Details</h2>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Manufacturer</th>
+                                        <td id="device-manufacturer">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Model</th>
+                                        <td id="device-model">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Serial Number</th>
+                                        <td id="device-serial">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block head %}
+    {{ block.super }}
+    <script>
+    const recordId = "{{ record_id|escapejs }}";
+
+    async function loadRecord() {
+        try {
+            const response = await fetch("{% url 'archive:api:digitalrecord-detail' pk='0' %}".replace('0', recordId));
+            if (!response.ok) {
+                throw new Error(`Failed to load record: ${response.status}`);
+            }
+            const record = await response.json();
+            displayRecord(record);
+        } catch (error) {
+            console.error("Error loading record:", error);
+            document.getElementById("loading").classList.add("hidden");
+            document.getElementById("error").textContent =
+                "Error: " + error.message;
+            document.getElementById("error").classList.remove("hidden");
+        }
+    }
+
+    function displayRecord(record) {
+        // Hide loading, show content
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("content").classList.remove("hidden");
+
+        // Update page title with identifier_str
+        const label = record.identifier_str || "#" + record.id;
+        document.getElementById("page-title").textContent = "Record " + label;
+        document.title = "Record " + label;
+
+        // Use thumbnail endpoint for all GUI image display
+        document.getElementById("record-image").src =
+            "{% url 'archive:api:digitalrecord-image' pk='0' %}".replace('0', recordId);
+
+        // Subject & Encounter
+        document.getElementById("subject-id").textContent =
+            record.subject_identifier || record.subject_id || "-";
+        document.getElementById("encounter-id").textContent =
+            record.encounter_id || "-";
+        document.getElementById("age-at-encounter").textContent =
+            formatAge(record);
+
+        // Record Details
+        document.getElementById("record-type").textContent =
+            record.record_type?.display || "-";
+        document.getElementById("created-at").textContent = record.created_at
+            ? new Date(record.created_at).toLocaleString()
+            : "-";
+
+        // Series & acquisition details come from record payload
+        document.getElementById("modality").textContent =
+            record.series_modality?.display || "-";
+        document.getElementById("patient-orientation").textContent =
+            Array.isArray(record.patient_orientation)
+                ? record.patient_orientation.join("\\")
+                : "-";
+        document.getElementById("acquisition-datetime").textContent =
+            record.acquisition_datetime
+                ? new Date(record.acquisition_datetime).toLocaleString()
+                : "-";
+        document.getElementById("scan-operator").textContent =
+            record.operator || "-";
+        renderArchiveLocations(record.archive_locations || []);
+        setupDownloadButton(record);
+
+        // Device
+        const device = record.device;
+        if (device) {
+            document.getElementById("device-manufacturer").textContent =
+                device.manufacturer || "-";
+            document.getElementById("device-model").textContent =
+                device.model_number || "-";
+            document.getElementById("device-serial").textContent =
+                device.serial_number || "-";
+        } else {
+            document.getElementById("device-manufacturer").textContent =
+                "Manual upload";
+            document.getElementById("device-model").textContent = "-";
+            document.getElementById("device-serial").textContent = "-";
+        }
+    }
+
+    function renderArchiveLocations(locations) {
+        const body = document.getElementById("archive-locations-body");
+        body.replaceChildren();
+
+        if (!Array.isArray(locations) || locations.length === 0) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 6;
+            cell.className = "text-base-content/60";
+            cell.textContent = "No archived locations";
+            row.appendChild(cell);
+            body.appendChild(row);
+            return;
+        }
+
+        locations.forEach((location) => {
+            const row = document.createElement("tr");
+            const endpoint = location.endpoint || {};
+
+            const endpointName = document.createElement("td");
+            endpointName.textContent = endpoint.name || "-";
+
+            const endpointType = document.createElement("td");
+            endpointType.textContent = endpoint.connection_type || "-";
+
+            const endpointAddress = document.createElement("td");
+            endpointAddress.textContent = endpoint.address || "-";
+
+            const assignedId = document.createElement("td");
+            assignedId.textContent = location.assigned_id || "-";
+
+            const status = document.createElement("td");
+            status.textContent = location.status || "-";
+
+            const archivedAt = document.createElement("td");
+            archivedAt.textContent = location.archived_at
+                ? new Date(location.archived_at).toLocaleString()
+                : "-";
+
+            row.replaceChildren(
+                endpointName,
+                endpointType,
+                endpointAddress,
+                assignedId,
+                status,
+                archivedAt,
+            );
+            body.appendChild(row);
+        });
+    }
+
+    function formatAge(record) {
+        const ageYears = record.age_at_encounter;
+        if (ageYears === null || ageYears === undefined) {
+            return "-";
+        }
+
+        const wholeYears = Math.floor(ageYears);
+        let months = Math.round((ageYears - wholeYears) * 12);
+        let years = wholeYears;
+        if (months === 12) {
+            years += 1;
+            months = 0;
+        }
+
+        let ageText = `${years}y ${months}m`;
+
+        if (record.actual_period_start_uncertain) {
+            const precision = record.actual_period_start_precision;
+            if (precision === "month") {
+                ageText += " +/- 1m";
+            } else if (precision === "year") {
+                ageText += " +/- 1y";
+            } else {
+                ageText += " +/-";
+            }
+        }
+
+        return ageText;
+    }
+
+    function setupDownloadButton(record) {
+        const btn = document.getElementById("download-original-btn");
+        if (!btn) return;
+
+        // Get file extension from image_url
+        function getExtension(url) {
+            if (!url) return "bin";
+            const m = url.match(/\.(\w+)$/);
+            return m ? m[1] : "bin";
+        }
+
+        const ext = getExtension(record.image_url);
+        const identifierStr = record.identifier_str || String(record.id);
+        const filename = identifierStr + (ext ? "." + ext : "");
+
+        btn.addEventListener("click", async function () {
+            const url = "{% url 'archive:api:digitalrecord-image' pk='0' %}".replace('0', recordId);
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Download failed");
+                const blob = await res.blob();
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(link.href);
+                    link.remove();
+                }, 100);
+            } catch (err) {
+                alert("Failed to download file: " + err.message);
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadRecord);
+    </script>
+{% endblock %}

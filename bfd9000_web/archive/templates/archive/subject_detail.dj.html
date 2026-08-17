@@ -1,0 +1,153 @@
+{% extends 'archive/base_index.dj.html' %}
+{% block content %}
+    <div class="flex-[1_1_0] flex flex-col overflow-auto p-6">
+        <div class="mb-4">
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'archive:subjects' %}" class="btn btn-sm btn-ghost">Back to Subjects</a>
+                <h1 class="text-2xl font-bold">
+                    Subject #<span id="subject-id">{{ subject_id }}</span>
+                </h1>
+            </div>
+            <div id="loading" class="text-base-content/60">Loading subject details...</div>
+            <div id="error" class="alert alert-error hidden"></div>
+        </div>
+        <div id="content"
+             class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+            <div class="card bg-base-200 shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Subject Summary</h2>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Subject ID</th>
+                                <td id="subject-identifier">-</td>
+                            </tr>
+                            <tr>
+                                <th>Collection</th>
+                                <td id="collection">-</td>
+                            </tr>
+                            <tr>
+                                <th>Sex</th>
+                                <td id="sex">-</td>
+                            </tr>
+                            <tr>
+                                <th>Dental Classification</th>
+                                <td id="skeletal-pattern">-</td>
+                            </tr>
+                            <tr>
+                                <th>Ethnicity</th>
+                                <td id="ethnicity">-</td>
+                            </tr>
+                            <tr>
+                                <th>Palatal Cleft</th>
+                                <td id="palatal-cleft">-</td>
+                            </tr>
+                            <tr>
+                                <th>Encounters</th>
+                                <td id="encounter-count">0</td>
+                            </tr>
+                            <tr>
+                                <th>Digital Records</th>
+                                <td id="record-count">0</td>
+                            </tr>
+                            <tr>
+                                <th>Physical Records</th>
+                                <td id="physical-record-count">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card bg-base-200 shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">Identifiers</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Use</th>
+                                    <th>System</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="identifiers-table-body">
+                                <tr>
+                                    <td colspan="3" class="text-base-content/70">No identifiers found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block head %}
+    {{ block.super }}
+    <script>
+    const subjectId = {{ subject_id }};
+
+    function setText(id, value) {
+        document.getElementById(id).textContent = value || '-';
+    }
+
+    function renderIdentifiers(identifiers) {
+        const body = document.getElementById('identifiers-table-body');
+        body.innerHTML = '';
+
+        if (!identifiers || identifiers.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="3" class="text-base-content/70">No identifiers found</td>';
+            body.appendChild(row);
+            return;
+        }
+
+        identifiers.forEach((identifier) => {
+            const row = document.createElement('tr');
+            const use = document.createElement('td');
+            const system = document.createElement('td');
+            const value = document.createElement('td');
+
+            use.textContent = identifier.use || '-';
+            system.textContent = identifier.system || '-';
+            value.textContent = identifier.value || '-';
+
+            row.replaceChildren(use, system, value);
+            body.appendChild(row);
+        });
+    }
+
+    function displaySubject(subject) {
+        setText('subject-id', subject.subject_identifier || subject.id);
+        setText('subject-identifier', subject.subject_identifier || subject.id);
+        setText('collection', subject.collection);
+        setText('sex', subject.gender);
+        setText('skeletal-pattern', subject.skeletal_pattern?.display || subject.skeletal_pattern?.code);
+        setText('ethnicity', subject.ethnicity?.display || subject.ethnicity?.code);
+        setText('palatal-cleft', subject.palatal_cleft?.display || subject.palatal_cleft?.code);
+        setText('encounter-count', subject.encounter_count ?? 0);
+        setText('record-count', subject.record_count ?? 0);
+        setText('physical-record-count', subject.physical_record_count ?? 0);
+        renderIdentifiers(subject.identifiers || []);
+    }
+
+    async function loadSubject() {
+        try {
+            const response = await fetch("{% url 'archive:api:subject-detail' pk='0' %}".replace('0', subjectId));
+            if (!response.ok) {
+                throw new Error(`Failed to load subject: ${response.status}`);
+            }
+            const subject = await response.json();
+            displaySubject(subject);
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+        } catch (error) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').textContent = 'Error: ' + error.message;
+            document.getElementById('error').classList.remove('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSubject);
+    </script>
+{% endblock %}
