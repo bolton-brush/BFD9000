@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.1] - 2026-08-17
+
+- Implement storage layer abstraction
+- Implement Box storage backend support
+- Add local, URI, and fallback storage backends implementing the Django file storage API
+- Add `generate_synthetic_data` management command for synthetic test data generation
+- Added Apereo CAS login support for CWRU SSO
+- Make CaseID (CAS) the default login method; local username/password login remains
+  available at `./login/local`
+- Add Caddy as a development reverse proxy for HTTPS
+- Add strict type checking and strict linting/code style checks, enforced in CI
+- Migrate Python package management to uv and production builds to uv/nix
+- Move AI image classification queries behind the Django backend via authenticated proxy
+  endpoints under `/api/scan/`
+- Integrate the BFD9020 AI service flake into the build and fix CI builds
+- Rename Django templates to the `.dj.html` extension
+
 ## [0.2.0] - 2026-03-12
 
 - add device information handling in digital record uploads and enforce unique
