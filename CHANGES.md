@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2] - 2026-09-16
+
+- Fix subjects view not working due to a JavaScript syntax error (extra parenthesis)
+- Fix infinite scroll tables not filling tall viewports: keep loading pages until the
+  table fills its scroll container, top up on window resize, and stop when a page
+  returns no items
+- Serve the app at the `/bfd9000` subpath in the Caddy development reverse proxy,
+  redirecting `/` to `/bfd9000/`
+- Enable `DJANGO_FORCE_SCRIPT_NAME=/bfd9000` subpath emulation by default in
+  docker-compose
+- Use fully-qualified `docker.io` image names in docker-compose and the mock BFD9010
+  Dockerfile
+
 ## [0.2.1] - 2026-08-17
 
 - Implement storage layer abstraction

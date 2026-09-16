@@ -118,8 +118,11 @@
      *
      * Rows are appended as the user scrolls down. A sentinel <tr> at the bottom of
      * the tbody is observed with IntersectionObserver; when it becomes visible the
-     * next page is fetched and rows are appended. A count badge in the footer shows
-     * the total number of records returned by the API.
+     * next page is fetched and rows are appended. If the appended rows still do not
+     * fill the scroll container (no scrollbar, sentinel still visible), further
+     * pages are fetched automatically until the container fills or all rows are
+     * loaded. A count badge in the footer shows the total number of records
+     * returned by the API.
      *
      * Config options (all required unless marked optional):
      *   tableBodyId     {string}   - tbody element id
@@ -162,6 +165,7 @@
             this.isLoading = false;
             this._observer = null;
             this._sentinel = null;
+            this._sentinelVisible = false;
         }
 
         init() {
@@ -207,6 +211,10 @@
                 this._reset();
             });
 
+            // A taller window may leave the container without a scrollbar;
+            // top up if the sentinel is (still) visible.
+            window.addEventListener("resize", () => this._maybeLoadMore());
+
             this._reset();
         }
 
@@ -240,6 +248,7 @@
         /** Clear rows, reset page counter and start fresh */
         _reset() {
             this._disconnectObserver();
+            this._sentinelVisible = false;
             this.currentPage = 1;
             this.hasMore = true;
             this.totalCount = 0;
@@ -266,13 +275,8 @@
 
             this._observer = new IntersectionObserver(
                 (entries) => {
-                    if (
-                        entries[0].isIntersecting &&
-                        !this.isLoading &&
-                        this.hasMore
-                    ) {
-                        this._loadNextPage();
-                    }
+                    this._sentinelVisible = entries[0].isIntersecting;
+                    this._maybeLoadMore();
                 },
                 { rootMargin: "200px" },
             );
@@ -287,6 +291,24 @@
             if (this._sentinel) {
                 this._sentinel.remove();
                 this._sentinel = null;
+            }
+        }
+
+        /**
+         * Load the next page whenever the sentinel is visible in (or near)
+         * the viewport. Called by the IntersectionObserver, after each
+         * finished page load, and on window resize, so pages keep loading
+         * until the table fills its scroll container (a scrollbar appears)
+         * or there are no more rows to load.
+         */
+        _maybeLoadMore() {
+            if (
+                this._observer &&
+                this._sentinelVisible &&
+                !this.isLoading &&
+                this.hasMore
+            ) {
+                this._loadNextPage();
             }
         }
 
@@ -306,11 +328,16 @@
                 const items = response.results || [];
                 this.totalCount = response.count || 0;
 
-                if (items.length === 0 && this.currentPage === 1) {
-                    // Empty result set
+                if (items.length === 0) {
+                    if (this.currentPage === 1) {
+                        // Empty result set
+                        this._renderEmpty();
+                        this._updateCountBadge(0);
+                    }
+                    // Stop when a page returns no items, otherwise the
+                    // fill-the-viewport retry below would loop forever.
+                    this.hasMore = false;
                     this._disconnectObserver();
-                    this._renderEmpty();
-                    this._updateCountBadge(0);
                     return;
                 }
 
@@ -344,6 +371,10 @@
                 this._disconnectObserver();
             } finally {
                 this.isLoading = false;
+                // If the sentinel is still visible the content does not fill
+                // the scroll container yet: keep loading until a scrollbar
+                // appears or there is nothing left to load.
+                this._maybeLoadMore();
             }
         }
 

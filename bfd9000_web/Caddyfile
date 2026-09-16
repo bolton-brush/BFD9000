@@ -3,5 +3,12 @@
 }
 
 localhost {
-    reverse_proxy bfd9000:9000
+    handle_path /bfd9000* {
+        reverse_proxy bfd9000:9000
+    }
+
+    redir / /bfd9000/ 302
+    handle {
+        redir /bfd9000/ 302
+    }
 }
