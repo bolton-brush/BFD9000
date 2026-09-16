@@ -122,7 +122,7 @@
                     subject.subject_identifier || subject.id;
                 subjectBtn.onclick = () => {
                     window.location.href =
-                      "{% url 'archive:subject_detail' subject_id='0' %}".replace('0', subject.id));
+                      "{% url 'archive:subject_detail' subject_id='0' %}".replace('0', subject.id);
                 };
                 identifier.appendChild(subjectBtn);
 
