@@ -1,14 +1,27 @@
-name: Publish Docker image to GHCR
+name: Test and Publish
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # PR runs cancel on new commits (previous test.yml behavior);
+  # deploy runs never get cancelled mid-push (previous publish-ghcr.yml behavior)
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - review_requested
+      - synchronize
   push:
     branches:
       - main # Triggers for staging builds
       - develop # Triggers for dev branch builds
     tags:
       - "v*" # Triggers for production releases
+  workflow_dispatch:
 permissions:
   contents: read
   packages: write
+  checks: read # Needed for the skip-if-already-passed API call
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/web
@@ -16,16 +29,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Check if this commit already passed tests
+        id: prior
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PASSED=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name == "test" and .conclusion == "success")] | length')
+          echo "Prior successful test runs on ${{ github.sha }}: $PASSED"
+          echo "skip=$([ "$PASSED" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
+        if: steps.prior.outputs.skip != 'true'
         uses: actions/checkout@v4
       - name: Install Nix
+        if: steps.prior.outputs.skip != 'true'
         uses: cachix/install-nix-action@v31
       - name: Run All tests
+        if: steps.prior.outputs.skip != 'true'
         run: |
           nix flake check --keep-going
   build-and-push:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs: [test]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
